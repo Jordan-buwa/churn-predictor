@@ -1,0 +1,92 @@
+name: Data Version Control
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  data-version-control-for-churn-data:
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+      AZURE_STORAGE_SAS_TOKEN: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install DVC + Azure support
+        run: |
+          pip install dvc[azure]
+
+      - name: Show DVC config
+        run: cat .dvc/config || echo "No DVC config found"
+
+      - name: DVC remote configuration
+        run: |
+          # --- For data/snapshots ---
+          dvc remote add -f -d azureblob azure://dvc-remote/churn_data
+          dvc remote modify azureblob account_name $AZURE_STORAGE_ACCOUNT_NAME
+          dvc remote modify azureblob sas_token $AZURE_STORAGE_SAS_TOKEN
+
+          # --- For models ---
+          dvc remote add -f -d churn_models azure://dvc-remote/models
+          dvc remote modify churn_models account_name $AZURE_STORAGE_ACCOUNT_NAME
+          dvc remote modify churn_models sas_token $AZURE_STORAGE_SAS_TOKEN
+
+      - name: Pull data from DVC remote
+        run: |
+          dvc pull -r azureblob 
+
+      - name: Check for data changes
+        id: data_changes
+        run: |
+          git status --porcelain
+          if [[ -n "$(git status --porcelain data/snapshots)" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Check for model changes
+        id: model_changes
+        run: |
+          git status --porcelain
+          if [[ -n "$(git status --porcelain models)" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add and push updated data
+        if: steps.data_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          dvc add data/snapshots
+          dvc push -r azureblob
+
+          git add data/snapshots.dvc dvc.lock
+          git commit -m "Auto: Update DVC data"
+          git push
+          
+      - name: Add and push updated models
+        if: steps.model_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          dvc add models
+          dvc push -r churn_models
+
+          git add models.dvc dvc.lock
+          git commit -m "Auto: Update DVC models"
+          git push

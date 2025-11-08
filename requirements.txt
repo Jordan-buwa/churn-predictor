@@ -1,0 +1,49 @@
+# Core ML & Data Science
+dvc[azure]
+pandas
+numpy
+scikit-learn
+scipy
+joblib
+
+# ML Frameworks
+xgboost
+torch
+torchvision
+imbalanced-learn
+
+# API & Web
+fastapi[standard]
+uvicorn[standard]
+python-multipart
+azure-storage-blob
+PyYAML
+azure-storage-blob
+opencensus-ext-azure
+opencensus-ext-logging
+
+
+# Database
+psycopg2-binary
+sqlalchemy
+alembic
+
+# ML Tracking & Experimentation
+mlflow
+optuna
+optuna-integration[mlflow]
+
+# Configuration & Validation
+pyyaml
+python-dotenv
+pydantic
+great-expectations
+
+# HTTP & Networking
+requests
+httpx
+
+# Development & Testing
+pytest
+pytest-asyncio
+requests-mock

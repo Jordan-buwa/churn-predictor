@@ -1,0 +1,8 @@
+[core]
+    remote = azureblob
+['remote "azureblob"']
+    url = azure://dvc-remote/churn_data
+    connection_timeout = 300
+    read_timeout = 300
+['remote "churn_models"']
+    url = azure://dvc-remote/models
