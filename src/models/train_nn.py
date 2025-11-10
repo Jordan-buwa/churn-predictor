@@ -9,7 +9,7 @@ from src.models.network.neural_net import ChurnNN
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report
 from mlflow.models import infer_signature
-from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
 from matplotlib import pyplot as plt
 
 from datetime import datetime
@@ -36,7 +36,7 @@ load_dotenv()
 
 MODEL_DIR = os.getenv("MODEL_DIR", "models/")
 os.makedirs(MODEL_DIR, exist_ok=True)
-#os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
+os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
 
 config_path = "config/config_train_nn.yaml"
 with open(config_path, "r") as f:
@@ -64,7 +64,7 @@ class NeuralNetworkTrainer():
         self.dropout_rate = None
         self.best_params = None
         self.dvc_hash = None
-        self.smote = SMOTE(random_state=self.random_state)
+        self.smote = SMOTETomek(random_state=self.random_state)
         self.skf = StratifiedKFold(n_splits=self.num_splits_cv,
                                     shuffle=True, 
                                     random_state=self.random_state)
@@ -153,10 +153,11 @@ class NeuralNetworkTrainer():
                 self.model, _ = self.train_model(train_loader)
                 disp, metrics = self.evaluate_model(X_test_tensor, y_test_tensor)
                 # Plot confusion matrix
-                _, ax = plt.subplots(figsize=(6, 6))
-                disp.plot(ax=ax)
-                plt.savefig("images/confusion_matrix.png")
-                mlflow.log_artifact("images/confusion_matrix.png")
+                if fold+1 == self.num_splits_cv:
+                    _, ax = plt.subplots(figsize=(6, 6))
+                    disp.plot(ax=ax)
+                    plt.savefig("images/confusion_matrix.png")
+                    mlflow.log_artifact("images/confusion_matrix.png")
                 # Predict probabilities and determine best threshold
                 self.logger.info(f"Shape of X_test: {X_test.shape}\nShape of model output: {self.model.predict_proba(X_test).shape}")
                 y_probs = self.model.predict_proba(X_test)[:, 1]
@@ -303,6 +304,7 @@ if __name__ == "__main__":
     y = df_processed[target_col]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     trainer = NeuralNetworkTrainer(X, y, config, device)
-    trainer.train_and_tune().save_model()
+    trainer.train_and_tune()
+    trainer.save_model()
     trainer.register_model() 
     trainer.save_logs_on_local()

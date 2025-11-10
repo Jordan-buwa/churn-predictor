@@ -1,0 +1,15 @@
+{
+  "model_type": "xgboost",
+  "latest_version": "xgboost_churn_v20251110_084327",
+  "latest_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/xgboost/versions/xgboost_churn_v20251110_084327.joblib",
+  "versions": [
+    {
+      "version": "xgboost_churn_v20251110_084327",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/xgboost/versions/xgboost_churn_v20251110_084327.joblib",
+      "created_at": "2025-11-10T08:43:27.111012",
+      "format": "joblib",
+      "metrics": {},
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/xgboost/schemas/xgboost_churn_v20251110_084327_schema.json"
+    }
+  ]
+}

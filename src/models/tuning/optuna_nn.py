@@ -1,3 +1,4 @@
+from imblearn.combine import SMOTETomek
 import yaml
 import numpy as np
 import torch
@@ -5,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import StratifiedKFold
 from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
 import optuna
 from optuna.integration import MLflowCallback
 import mlflow
@@ -28,9 +29,11 @@ n_trials = config["training"]["n_trials"]
 class DerivedMLflowCallback(MLflowCallback):
     """Custom MLflow callback that logs all metrics quietly"""
     
-    def __init__(self, metric_names=None, metric_name="f1_score"):
+    def __init__(self, metric_names=None, metric_name="f1_score", nested=False):
         super().__init__(metric_name=metric_name)
         self.metric_names = metric_names or ["f1_score", "accuracy", "roc_auc", "precision", "recall"]
+        self.nested = nested
+        self.metric_name = metric_name
     
         import mlflow
         mlflow.set_experiment("Neuralnet_Churn_Experiment")
@@ -43,21 +46,27 @@ class DerivedMLflowCallback(MLflowCallback):
         mlflow_logger.setLevel(logging.WARNING)
         
         try:
-            # Call parent functionality
-            super().__call__(study, trial)
-            
-            # Add our custom metrics for completed trials
-            if trial.state == optuna.trial.TrialState.COMPLETE and trial.user_attrs:
-                for key, value in trial.user_attrs.items():
-                    if any(metric in key for metric in self.metric_names):
-                        mlflow.log_metric(key, value)
+            # Call parent functionality, but with nesting
+            with mlflow.start_run(nested=self.nested):
+                # Log parameters.
+                mlflow.log_params(trial.params)
+
+                # Log value.
+                trial_value = trial.value
+                if trial_value is not None:
+                    mlflow.log_metric(self.metric_name, trial_value)
+
+                # Add our custom metrics for completed trials
+                if trial.state == optuna.trial.TrialState.COMPLETE and trial.user_attrs:
+                    for key, value in trial.user_attrs.items():
+                        if any(metric in key for metric in self.metric_names):
+                            mlflow.log_metric(key, value)
         finally:
             # Restore original logging level
             mlflow_logger.setLevel(original_level)
 
 
-# Optuna Logger
-class OptunaLogger():
+class OptunaLogger:
     def __init__(self, logger):
         self.logger = logger
         
@@ -95,7 +104,7 @@ def objective(trial, X, y, device=device):
     impute_strategy = trial.suggest_categorical("impute_strategy", config["optuna"]["impute_strategy"])
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    smote = SMOTE(random_state=42)
+    smote = SMOTETomek(random_state=42)
     # Store all metrics
     all_metrics = {
         "f1_scores": [], "auc_scores": [], "accuracy_scores": [],
@@ -137,6 +146,10 @@ def objective(trial, X, y, device=device):
     # Calculate mean metrics
     mean_metrics = {k: np.mean(v) for k, v in all_metrics.items()}
     
+    # Print trial results
+    print(f"========== Trial results ===========\n")
+    for k, v in mean_metrics.items():
+        print(f"{k}: {v}")
     # Store additional metrics as user attributes
     trial.set_user_attr("mean_auc", mean_metrics["auc_scores"])
     trial.set_user_attr("mean_accuracy", mean_metrics["accuracy_scores"])
@@ -148,7 +161,7 @@ def objective(trial, X, y, device=device):
 
 # --- Run Optuna study ---
 def run_optuna_optimization(X, y, n_trials=n_trials, device=device):
-    mlflow_callback = DerivedMLflowCallback(metric_name="f1_score")
+    mlflow_callback = DerivedMLflowCallback(metric_name="f1_score", nested=True)
     study = optuna.create_study(direction='maximize', study_name="Churn NN Optimization")
     study.optimize(lambda trial: objective(trial, X, y, device), n_trials=n_trials, callbacks=[optuna_logger, mlflow_callback])
     return study

@@ -1,0 +1,301 @@
+{
+  "model_type": "random_forest",
+  "latest_version": "random_forest_churn_v20251110_084228",
+  "latest_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_084228.joblib",
+  "versions": [
+    {
+      "version": "random_forest_churn_v20251110_054228",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_054228.joblib",
+      "created_at": "2025-11-10T05:42:28.820769",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_054228_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_054507",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_054507.joblib",
+      "created_at": "2025-11-10T05:45:08.137254",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_054507_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_055641",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_055641.joblib",
+      "created_at": "2025-11-10T05:56:42.069069",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_055641_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_055716",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_055716.joblib",
+      "created_at": "2025-11-10T05:57:16.465971",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_055716_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_055930",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_055930.joblib",
+      "created_at": "2025-11-10T05:59:30.417867",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_055930_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_061005",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_061005.joblib",
+      "created_at": "2025-11-10T06:10:05.948383",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_061005_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_061701",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_061701.joblib",
+      "created_at": "2025-11-10T06:17:02.165897",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_061701_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_062059",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_062059.joblib",
+      "created_at": "2025-11-10T06:20:59.516887",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_062059_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_062632",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_062632.joblib",
+      "created_at": "2025-11-10T06:26:33.240342",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_062632_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_063456",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_063456.joblib",
+      "created_at": "2025-11-10T06:34:56.882800",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_063456_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_064009",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_064009.joblib",
+      "created_at": "2025-11-10T06:40:09.472445",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_064009_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_064434",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_064434.joblib",
+      "created_at": "2025-11-10T06:44:34.530510",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_064434_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_073023",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_073023.joblib",
+      "created_at": "2025-11-10T07:30:23.209862",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_073023_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_073041",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_073041.joblib",
+      "created_at": "2025-11-10T07:30:41.276968",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_073041_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_073354",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_073354.joblib",
+      "created_at": "2025-11-10T07:33:54.906221",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_073354_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_073412",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_073412.joblib",
+      "created_at": "2025-11-10T07:34:12.268949",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_073412_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_075031",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_075031.joblib",
+      "created_at": "2025-11-10T07:50:31.109573",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_075031_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_075114",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_075114.joblib",
+      "created_at": "2025-11-10T07:51:14.489468",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_075114_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_075536",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_075536.joblib",
+      "created_at": "2025-11-10T07:55:36.938533",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_075536_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_075805",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_075805.joblib",
+      "created_at": "2025-11-10T07:58:05.678601",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_075805_schema.json"
+    },
+    {
+      "version": "random_forest_churn_v20251110_084228",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/versions/random_forest_churn_v20251110_084228.joblib",
+      "created_at": "2025-11-10T08:42:28.362628",
+      "format": "joblib",
+      "metrics": {
+        "accuracy": 0.6695619258077058,
+        "precision": 0.65441241071074,
+        "recall": 0.7188836371820843,
+        "f1_score": 0.6851068150779094,
+        "roc_auc": 0.750249485976051
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/random_forest/schemas/random_forest_churn_v20251110_084228_schema.json"
+    }
+  ]
+}

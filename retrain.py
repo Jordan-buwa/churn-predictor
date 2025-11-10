@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Retraining Pipeline for Churn Prediction Models
 Orchestrates the full retraining workflow: data -> preprocessing -> training -> evaluation -> deployment
@@ -23,6 +22,7 @@ from src.models.train_nn import NeuralNetworkTrainer
 from src.models.train_xgb import XGBoostTrainer, setup_logger as xgb_logger
 from src.models.train_rf import evaluate_models as rf_evaluate
 import torch
+import traceback
 
 class ModelRetrainer:
     """
@@ -34,7 +34,41 @@ class ModelRetrainer:
         self.logger = self._setup_logger()
         self.models_to_retrain = self.config.get("models_to_retrain", ["xgboost", "random_forest", "neural_net"])
         self.performance_threshold = self.config.get("performance_threshold", 0.7)
+    
+    def _setup_logger(self) -> logging.Logger:
+        """Setup centralized logger for retraining"""
+        logger = logging.getLogger("ModelRetrainer")
+        logger.setLevel(logging.INFO)
         
+        # Prevent duplicate handlers
+        if logger.hasHandlers():
+            logger.handlers.clear()
+
+        # File handler
+        log_dir = "logs/retraining"
+        os.makedirs(log_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = os.path.join(log_dir, f"retraining_{timestamp}.log")
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(logging.INFO)
+
+        # Console handler
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+
+        # Formatter
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        fh.setFormatter(formatter)
+        ch.setFormatter(formatter)
+
+        # Add handlers
+        logger.addHandler(fh)
+        logger.addHandler(ch)
+
+        return logger
+
     def _load_config(self, config_path: str) -> Dict:
         """Load retraining configuration"""
         try:
@@ -48,24 +82,6 @@ class ModelRetrainer:
                 "enable_mlflow": True,
                 "save_models": True
             }
-    
-    def _setup_logger(self) -> logging.Logger:
-        """Setup logging for retraining pipeline"""
-        log_dir = "logs/retraining"
-        os.makedirs(log_dir, exist_ok=True)
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = os.path.join(log_dir, f"retrain_{timestamp}.log")
-        
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
-        return logging.getLogger(__name__)
     
     def validate_data_quality(self, df: pd.DataFrame) -> bool:
         """Validate data quality before retraining"""
@@ -123,16 +139,18 @@ class ModelRetrainer:
                 xgb_config = yaml.safe_load(f)
             
             # Setup XGBoost logger
-            xgb_logger = xgb_logger(
+            from src.models.train_xgb import setup_logger
+            xgb_logger_instance = setup_logger(
                 xgb_config["logging"]["log_path"], 
                 xgb_config["logging"]["log_level"]
             )
             
-            trainer = XGBoostTrainer(config=xgb_config, logger=xgb_logger)
+            trainer = XGBoostTrainer(config=xgb_config, logger=xgb_logger_instance)
             model, metrics = trainer.train_and_tune_model(X, y)
             
             if model:
-                trainer.save_model(model)
+                # Save with feature/target context so schema is persisted
+                trainer.save_model(model, X=X, y=y)
                 self.logger.info("XGBoost retraining completed successfully")
                 return {
                     "status": "success",
@@ -144,6 +162,7 @@ class ModelRetrainer:
                 
         except Exception as e:
             self.logger.error(f"XGBoost retraining failed: {str(e)}")
+            self.logger.error(traceback.format_exc())
             return {
                 "status": "failed",
                 "error": str(e),
@@ -163,11 +182,40 @@ class ModelRetrainer:
             _, best_model, best_metrics, _ = rf_evaluate(X, y, rf_config)
             
             if best_model:
-                # Save model locally
-                import joblib
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                model_path = os.path.join("models", f"rf_model_{timestamp}.joblib")
-                joblib.dump(best_model, model_path)
+                # Save via centralized model store for consistent structure and metadata
+                try:
+                    from src.models.utils.model_store import save_model_artifacts
+                except Exception as e:
+                    self.logger.error(f"Failed to import model_store: {e}")
+                    raise
+
+                # Build a simple schema artifact for parity
+                try:
+                    target_col = 'churn'
+                    schema = {
+                        "model_type": "random_forest",
+                        "required_columns": list(X.columns),
+                        "dtypes": {col: str(dtype) for col, dtype in X.dtypes.items()},
+                        "target_column": target_col,
+                        "schema_version": "1.0",
+                        "timestamp": datetime.now().isoformat(),
+                        "feature_count": int(X.shape[1]),
+                        "sample_count": int(X.shape[0]),
+                        "class_distribution": y.value_counts().to_dict(),
+                    }
+                except Exception:
+                    schema = None
+
+                version_hint = f"random_forest_churn_v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                saved = save_model_artifacts(
+                    model=best_model,
+                    model_type="random_forest",
+                    metrics=best_metrics,
+                    schema=schema,
+                    version_hint=version_hint,
+                )
+                model_path = saved.get("model_path")
+                self.logger.info(f"Random Forest model saved at {model_path}")
                 
                 self.logger.info("Random Forest retraining completed successfully")
                 return {
@@ -180,6 +228,7 @@ class ModelRetrainer:
                 
         except Exception as e:
             self.logger.error(f"Random Forest retraining failed: {str(e)}")
+            self.logger.error(traceback.format_exc())
             return {
                 "status": "failed",
                 "error": str(e),
@@ -214,6 +263,7 @@ class ModelRetrainer:
             
         except Exception as e:
             self.logger.error(f"Neural Network retraining failed: {str(e)}")
+            self.logger.error(traceback.format_exc())
             return {
                 "status": "failed",
                 "error": str(e),

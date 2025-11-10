@@ -1,0 +1,36 @@
+{
+  "model_type": "random_forest",
+  "model_version": "random_forest_churn_v20251110_075805",
+  "required_columns": [
+    "engagement_index",
+    "model_change_rate",
+    "overage_ratio",
+    "call_activity_score",
+    "call_quality_issues",
+    "cust_engagement_score",
+    "overuse_behavior",
+    "device_tenure_index",
+    "demographic_index"
+  ],
+  "dtypes": {
+    "engagement_index": "float64",
+    "model_change_rate": "float64",
+    "overage_ratio": "float64",
+    "call_activity_score": "float64",
+    "call_quality_issues": "float64",
+    "cust_engagement_score": "float64",
+    "overuse_behavior": "float64",
+    "device_tenure_index": "float64",
+    "demographic_index": "float64"
+  },
+  "target_column": "churn",
+  "schema_version": "1.0",
+  "timestamp": "2025-11-10T07:58:05.607702",
+  "feature_count": 9,
+  "sample_count": 97746,
+  "class_distribution": {
+    "0": 48873,
+    "1": 48873
+  },
+  "training_data_hash": "ERROR: argument command: invalid choice: 'hash' (choose from 'add', 'artifacts', 'cache', 'check-ignore', 'checkout', 'commit', 'completion', 'config', 'daemon', 'dag', 'data', 'pull', 'push', 'fetch', 'status', 'dataset', 'ds', 'destroy', 'diff', 'du', 'experiments', 'exp', 'freeze', 'unfreeze', 'gc', 'get', 'get-url', 'git-hook', 'import', 'import-db', 'test-db', 'import-url', 'init', 'install', 'list', 'ls', 'list-url', 'ls-url', 'metrics', 'move', 'mv', 'params', 'plots', 'queue', 'remote', 'remove', 'rm', 'repro', 'root', 'stage', 'studio', 'unprotect', 'update', 'version', 'doctor')\nusage: dvc [-q | -v] [-h] [-V] [--cd <path>] [--wait-for-lock] command ...\n\nData Version Control\n\noptions:\n  -q, --quiet        Be quiet.\n  -v, --verbose      Be verbose.\n  -h, --help         Show this help message and exit.\n  -V, --version      Show program's version.\n  --cd <path>        Change to directory before executing.\n  --wait-for-lock    Wait for the lock if it is already held by another process, instead of failing immediately.\n\nAvailable Commands:\n  command            Use `dvc command --help` for command-specific help.\n    add              Track data files or directories with DVC.\n    artifacts        DVC model registry artifact commands.\n    cache            Manage cache settings.\n    check-ignore     Check whether files or directories are excluded due to `.dvcignore`.\n    checkout         Checkout data files from cache.\n    commit           Record changes to files or directories tracked by DVC by storing the current versions in the cache.\n    completion       Generate shell tab completion.\n    config           Get or set config options.\n    dag              Visualize DVC project DAG.\n    data             Commands related to data management.\n    pull             Download tracked files or directories from remote storage.\n    push             Upload tracked files or directories to remote storage.\n    fetch            Download files or directories from remote storage to the cache.\n    status           Show changed stages, compare local cache and a remote storage.\n    destroy          Remove DVC files, local DVC config and data cache.\n    diff             Show added, modified, or deleted data between commits in the DVC repository, or between a commit and the workspace.\n    du               Show disk usage.\n    experiments (exp)\n                     Commands to run and compare experiments.\n    freeze           Freeze stages or .dvc files.\n    unfreeze         Unfreeze stages or .dvc files.\n    gc               Garbage collect unused objects from cache or remote storage.\n    get              Download file or directory tracked by DVC or by Git.\n    get-url          Download or copy files from URL.\n    import           Download file or directory tracked by DVC or by Git into the workspace, and track it.\n    import-db        Snapshot a table or a SQL query result to a CSV/JSON format\n    import-url       Download or copy file from URL and take it under DVC control.\n    init             Initialize DVC repository.\n    install          Install DVC git hooks into the repository.\n    list (ls)        List repository contents, including files and directories tracked by DVC and by Git.\n    list-url (ls-url)\n                     List directory contents from URL.\n    metrics          Commands to display and compare metrics.\n    move (mv)        Rename or move a DVC controlled data file or a directory.\n    params           Commands to display params.\n    plots            Commands to visualize and compare plot data.\n    queue            Commands to manage experiments queue.\n    remote           Set up and manage data remotes.\n    remove (rm)      Remove stages from dvc.yaml and/or stop tracking files or directories.\n    repro            Reproduce complete or partial pipelines by executing their stages.\n    root             Return the relative path to the root of the DVC project.\n    stage            Commands to list and create stages.\n    studio           Commands to authenticate DVC with Iterative Studio\n    unprotect        Unprotect tracked files or directories (when hardlinks or symlinks have been enabled with `dvc config cache.type`).\n    update           Update data artifact imported (via dvc import or dvc import-url) from an external DVC repository or URL.\n    version (doctor)\n                     Display the DVC version and system/environment information."
+}

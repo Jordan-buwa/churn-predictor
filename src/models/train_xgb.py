@@ -133,7 +133,8 @@ class XGBoostTrainer:
         y_true_global = []
         y_pred_global = []
 
-        with mlflow.start_run(run_name=f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"):
+        # Use nested run to avoid conflicts with parent MLflow run
+        with mlflow.start_run(run_name=f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}", nested=True):
             mlflow.log_params(self.config)
             mlflow.set_tag("dvc_data_hash", dvc_hash)
 
