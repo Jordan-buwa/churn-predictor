@@ -153,7 +153,7 @@ curl -X DELETE "http://127.0.0.1:8000/train/job/cancel/123e4567-e89b-12d3-a456-4
 ```
 ## GET `/train/models/available`
 
-### List all available trained models in the models directory.
+### List available trained models using standardized metadata and versions.
 ### Example Request
 ```bash
 curl -X GET "http://127.0.0.1:8000/train/models/available"
@@ -161,14 +161,43 @@ curl -X GET "http://127.0.0.1:8000/train/models/available"
 ### Example Response
 ```json
 {
-  "available_models": {
-    "xgboost_model_2025-10-30.joblib": {
-      "path": "models/xgboost_model_2025-10-30.joblib",
-      "type": "xgboost",
-      "size": 24576,
-      "modified": "2025-10-30T14:00:00"
+  "available_models": [
+    {
+      "model_type": "xgboost",
+      "base_path": "models/xgboost",
+      "latest_version": "xgboost_churn_v20251110_153245",
+      "latest_path": "models/xgboost/versions/xgboost_churn_v20251110_153245.joblib",
+      "versions": [
+        {
+          "version": "xgboost_churn_v20251110_153245",
+          "path": "models/xgboost/versions/xgboost_churn_v20251110_153245.joblib",
+          "created_at": "2025-11-10T15:32:45Z",
+          "format": "joblib",
+          "schema_path": "models/xgboost/schemas/xgboost_churn_v20251110_153245_schema.json"
+        }
+      ]
+    },
+    {
+      "model_type": "neural_net",
+      "base_path": "models/neural_net",
+      "latest_version": "neural_net_churn_v20251110_153300",
+      "latest_path": "models/neural_net/versions/neural_net_churn_v20251110_153300.pth",
+      "versions": [
+        {
+          "version": "neural_net_churn_v20251110_153300",
+          "path": "models/neural_net/versions/neural_net_churn_v20251110_153300.pth",
+          "created_at": "2025-11-10T15:33:00Z",
+          "format": "pth",
+          "schema_path": "models/neural_net/schemas/neural_net_churn_v20251110_153300_schema.json"
+        }
+      ]
     }
-  },
+  ],
   "models_directory": "/home/user/project/models"
 }
 ```
+
+#### Notes
+- Data is sourced from `metadata.json` under `models/<type>/` when available, with fallback scanning of `models/<type>/versions/`.
+- `latest_version` and `latest_path` indicate the current default used by prediction endpoints.
+- `schema_path` points to the saved training schema stored under `models/<type>/schemas/`.

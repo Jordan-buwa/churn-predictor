@@ -1,5 +1,6 @@
 import os
 import yaml
+import json
 from pathlib import Path
 from typing import Dict, Any
 from dotenv import load_dotenv
@@ -105,29 +106,58 @@ config = APIConfig()
 
 # Convenience functions for common configurations
 def get_model_path(model_type: str) -> str:
-    """Get the latest model file path for a given model type."""
-    model_dir = Path(config.model_dir)
-    
-    # Model file extensions mapping
+    """Get the latest model file path for a given model type.
+
+    Prefers structured storage under `models/<type>/versions` with `metadata.json`.
+    Falls back to scanning top-level legacy files if needed.
+    """
+    base_dir = Path(config.model_dir)
+    normalized = model_type.replace("-", "_")
+
+    # Structured directory per model type
+    structured_base = base_dir / normalized
+    versions_dir = structured_base / "versions"
+    metadata_path = structured_base / "metadata.json"
+
+    # Try metadata first
+    if metadata_path.exists():
+        try:
+            with open(metadata_path, "r") as f:
+                meta = json.load(f)
+            latest_path = meta.get("latest_path")
+            if latest_path and Path(latest_path).exists():
+                return latest_path
+        except Exception:
+            pass
+
+    # Fallback to versions directory
     model_extensions = {
         "neural_net": [".pth", ".pt", ".h5"],
         "xgboost": [".joblib", ".pkl"], 
-        "random_forest": [".joblib", ".pkl"]
+        "random_forest": [".joblib", ".pkl"],
     }
-    
-    ext = model_extensions.get(model_type, [".joblib", ".pth", ".pkl"])
-    
-    # Find latest model file
-    model_files = [
-        f for f in model_dir.iterdir()
-        if f.is_file() and f.suffix in ext and model_type.replace("-", "") in f.name.lower().replace("-", "")
-    ]
-    
-    if not model_files:
-        raise FileNotFoundError(f"No trained {model_type} model found in {model_dir}")
-    
-    latest_model = max(model_files, key=lambda f: f.stat().st_mtime)
-    return str(latest_model)
+    ext = model_extensions.get(normalized, [".joblib", ".pth", ".pkl"])
+
+    candidates = []
+    if versions_dir.exists():
+        for f in versions_dir.iterdir():
+            if f.is_file() and f.suffix in ext:
+                candidates.append(f)
+        if candidates:
+            latest_model = max(candidates, key=lambda f: f.stat().st_mtime)
+            return str(latest_model)
+
+    # Legacy top-level scan
+    if base_dir.exists():
+        legacy_files = [
+            f for f in base_dir.iterdir()
+            if f.is_file() and f.suffix in ext and normalized.replace("-", "") in f.name.lower().replace("-", "")
+        ]
+        if legacy_files:
+            latest_model = max(legacy_files, key=lambda f: f.stat().st_mtime)
+            return str(latest_model)
+
+    raise FileNotFoundError(f"No trained {model_type} model found in {base_dir}")
 
 def get_allowed_model_types() -> list:
     """Get list of allowed model types."""

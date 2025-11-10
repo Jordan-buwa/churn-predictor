@@ -222,20 +222,32 @@ best_model_name, best_model, best_metrics, run_id = evaluate_models(X, y, train_
 if best_model_name:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    # Organizing directory structure
     model_type = "random_forest"
-    versions_dir = os.path.join(MODEL_DIR, model_type, "versions")
-    os.makedirs(versions_dir, exist_ok=True)
-    
-    # Creating version name
     model_version_name = f"random_forest_churn_v{timestamp}"
-    joblib.dump(best_model, os.path.join(MODEL_DIR, model_version_name))
-    local_model_path = os.path.join(versions_dir, f"{model_version_name}.joblib")
-    joblib.dump(best_model, local_model_path)
-    logger.info(f"Best model saved locally at: {local_model_path}")
-    
-    # Saving schema to both locations
+
+    # Prepare and save schema locally (also used by the store util)
     schema, local_schema_path = save_data_schema(X, y, TARGET_COL, model_type, model_version_name)
+
+    # Standardized persistence with metadata
+    try:
+        from src.models.utils.model_store import save_model_artifacts
+        saved = save_model_artifacts(
+            model=best_model,
+            model_type=model_type,
+            metrics=best_metrics,
+            schema=schema,
+            version_hint=model_version_name,
+        )
+        local_model_path = saved["model_path"]
+        logger.info(f"Best model saved locally at: {local_model_path}")
+    except Exception as e:
+        logger.error(f"Error saving RandomForest model via store: {e}")
+        # Fallback to legacy save to avoid failure
+        versions_dir = os.path.join(MODEL_DIR, model_type, "versions")
+        os.makedirs(versions_dir, exist_ok=True)
+        local_model_path = os.path.join(versions_dir, f"{model_version_name}.joblib")
+        joblib.dump(best_model, local_model_path)
+        logger.info(f"Best model saved locally (legacy) at: {local_model_path}")
     
     # Logging model to MLflow with model type in name
     mlflow_registry_name = f"{model_type}_churn_model"

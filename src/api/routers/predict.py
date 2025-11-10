@@ -19,7 +19,7 @@ from src.api.utils.error_handlers import (
     handle_model_error, handle_data_error, raise_if_model_not_found
 )
 from src.api.utils.models_types import ModelType, validate_model_type
-from src.api.ml_models import get_model_path, get_model
+from src.api.ml_models import load_single_model, get_model_info
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)
@@ -50,16 +50,12 @@ def get_latest_model(model_type: str):
         handle_model_error(model_type, e)
 
 
-def load_model(model_path: str, model_type: str):
-    normalized_type = model_type.replace("-", "_")
-    
-    if normalized_type == ModelType.NEURAL_NET:
-        import torch
-        model = torch.load(model_path)
-        model.eval()
-        return model
-    else:
-        return joblib.load(model_path)
+def load_model_by_type(model_type: str):
+    """Centralized loader using ml_models with metadata-aware path selection."""
+    model = load_single_model(model_type)
+    if model is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to load model: {model_type}")
+    return model
 
 def map_dropdowns(payload: dict) -> dict:
     # PRIZM
@@ -148,7 +144,7 @@ def predict_from_payload(
 
         # Load model & predict
         model_path = get_latest_model(model_type)
-        model = load_model(model_path, model_type)
+        model = load_model_by_type(model_type)
 
         if model_type.replace("-", "_") == ModelType.NEURAL_NET:
             import torch
@@ -214,7 +210,7 @@ def predict_from_db_customer(
 
             # Load model
             model_path = get_latest_model(model_type)
-            model = load_model(model_path, model_type)
+            model = load_model_by_type(model_type)
 
             # Predict
             if model_type == "neural-net":
@@ -275,7 +271,7 @@ def predict_from_db_batch(
 
         results = []
         model_path = get_latest_model(model_type)
-        model = load_model(model_path, model_type)
+        model = load_model_by_type(model_type)
 
         for r in rows:
             X = [list(r["features"].values())]

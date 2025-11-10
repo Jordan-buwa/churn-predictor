@@ -323,14 +323,49 @@ class XGBoostTrainer:
 
             return final_model, fold_metrics
 
-    def save_model(self, model):
-        MODEL_DIR = os.getenv("MODEL_DIR", "models")
-        os.makedirs(MODEL_DIR, exist_ok=True)
+    def save_model(self, model, X=None, y=None):
+        try:
+            from src.models.utils.model_store import save_model_artifacts
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_path = os.path.join(
-            MODEL_DIR, f"xgboost_model_{timestamp}.joblib")
-        joblib.dump(model, model_path)
+            # Build schema artifact if data is provided
+            schema = None
+            try:
+                if X is not None and y is not None:
+                    target_col = self.config.get("target_column", "target")
+                    # Attempt to get DVC hash for provenance
+                    try:
+                        dvc_hash = subprocess.getoutput("dvc hash data/processed/preprocessed.csv")
+                    except Exception:
+                        dvc_hash = "N/A"
+                    schema = {
+                        "model_type": "xgboost",
+                        "required_columns": list(X.columns) if hasattr(X, "columns") else [],
+                        "dtypes": {col: str(dtype) for col, dtype in (X.dtypes.items() if hasattr(X, "dtypes") else [])},
+                        "target_column": target_col,
+                        "schema_version": "1.0",
+                        "timestamp": datetime.now().isoformat(),
+                        "feature_count": int(X.shape[1]) if hasattr(X, "shape") else None,
+                        "sample_count": int(X.shape[0]) if hasattr(X, "shape") else None,
+                        "class_distribution": y.value_counts().to_dict() if hasattr(y, "value_counts") else {},
+                        "training_data_hash": dvc_hash,
+                    }
+            except Exception as e:
+                # Non-fatal; proceed without schema
+                self.logger.warning(f"Failed to build schema: {e}")
+
+            version_hint = f"xgboost_churn_v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+            saved = save_model_artifacts(
+                model=model,
+                model_type="xgboost",
+                metrics=None,
+                schema=schema,
+                version_hint=version_hint,
+            )
+            model_path = saved["model_path"]
+        except Exception as e:
+            self.logger.error(f"Error saving XGBoost model: {e}")
+            raise
 
         print(model_path)
         self.logger.info(f"Final model saved locally at {model_path}")
@@ -368,4 +403,4 @@ if __name__ == "__main__":
 
     trainer = XGBoostTrainer(config=config, logger=logger)
     best_model, fold_metrics = trainer.train_and_tune_model(X, y)
-    trainer.save_model(best_model)
+    trainer.save_model(best_model, X=X, y=y)

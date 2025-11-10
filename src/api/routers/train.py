@@ -4,6 +4,7 @@ import subprocess
 from dotenv import load_dotenv
 import os
 import sys
+import json
 import uuid
 import logging
 from datetime import datetime
@@ -143,30 +144,14 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
         logger.error(f"Unexpected error in training job {job_id}: {str(e)}")
 
 def find_latest_model_file(model_type: str) -> Optional[str]:
-    """Find the latest model file based on model type."""
-    models_dir = Path(config.models_dir)
-    if not models_dir.exists():
+    """Find latest model path using centralized config and normalized type."""
+    try:
+        from src.api.utils.models_types import normalize_model_type
+        from src.api.utils.config import get_model_path as cfg_get_model_path
+        normalized = normalize_model_type(model_type)
+        return cfg_get_model_path(normalized)
+    except Exception:
         return None
-    
-    model_patterns = {
-        "neural-net": ["*.h5", "*.pth", "*.pt"],
-        "xgboost": ["*xgboost*", "*.pkl", "*.joblib"],
-        "random-forest": ["*random_forest*", "*.pkl", "*.joblib"]
-    }
-    
-    patterns = model_patterns.get(model_type, ["*.pkl", "*.joblib", "*.h5"])
-    
-    latest_file = None
-    latest_time = 0
-    
-    for pattern in patterns:
-        for model_file in models_dir.glob(pattern):
-            file_time = model_file.stat().st_mtime
-            if file_time > latest_time:
-                latest_time = file_time
-                latest_file = str(model_file)
-    
-    return latest_file
 
 def get_script_path(model_type: str) -> str:
     """Get the script path for the specified model type."""
@@ -407,31 +392,56 @@ async def cancel_job(job_id: str):
     }
 @router.get("/models/available")
 async def get_available_models():
-    """Get list of available trained models in the models directory."""
+    """List available models using standardized metadata and versions structure."""
     models_dir = Path(config.model_dir)
-    available_models = {}
-    
+    result = []
+
     if models_dir.exists():
-        for model_file in models_dir.iterdir():
-            if model_file.is_file():
-                file_type = model_file.suffix.lower()
-                model_type = "unknown"
-                
-                if "neural" in model_file.name.lower() or "nn" in model_file.name.lower():
-                    model_type = "neural-net"
-                elif "xgboost" in model_file.name.lower() or "xgb" in model_file.name.lower():
-                    model_type = "xgboost" 
-                elif "random" in model_file.name.lower() or "rf" in model_file.name.lower():
-                    model_type = "random-forest"
-                
-                available_models[model_file.name] = {
-                    "path": str(model_file),
-                    "type": model_type,
-                    "size": model_file.stat().st_size,
-                    "modified": datetime.fromtimestamp(model_file.stat().st_mtime).isoformat()
-                }
-    
+        for type_name in os.listdir(models_dir):
+            base_dir = models_dir / type_name
+            if not base_dir.is_dir():
+                continue
+
+            info = {
+                "model_type": type_name,
+                "base_path": str(base_dir),
+                "latest_version": None,
+                "latest_path": None,
+                "versions": [],
+            }
+
+            # Read metadata.json if present
+            metadata_file = base_dir / "metadata.json"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, "r") as f:
+                        meta = json.load(f)
+                    info["latest_version"] = meta.get("latest_version")
+                    info["latest_path"] = meta.get("latest_path")
+                    if isinstance(meta.get("versions"), list):
+                        info["versions"] = meta["versions"]
+                except Exception:
+                    pass
+
+            # Fallback: enumerate versions directory
+            versions_dir = base_dir / "versions"
+            if versions_dir.exists():
+                try:
+                    for f in versions_dir.iterdir():
+                        if f.is_file():
+                            info["versions"].append({
+                                "version": f.stem,
+                                "path": str(f),
+                                "created_at": None,
+                                "format": f.suffix.lstrip("."),
+                                "schema_path": None,
+                            })
+                except Exception:
+                    pass
+
+            result.append(info)
+
     return {
-        "available_models": available_models,
-        "models_directory": str(models_dir.absolute())
+        "available_models": result,
+        "models_directory": str(models_dir.absolute()),
     }

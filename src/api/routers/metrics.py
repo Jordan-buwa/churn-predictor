@@ -5,6 +5,7 @@ import json
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 from src.api.utils.config import APIConfig, get_allowed_model_types, get_model_path
+from src.api.ml_models import load_single_model
 from src.api.utils.response_models import MetricsResponse, TestDataset
 from src.api.utils.error_handlers import (
     ModelNotFoundError, DataNotFoundError,
@@ -28,14 +29,12 @@ def get_latest_model(model_type: str):
         handle_model_error(model_type, e)
 
 
-def load_model(model_path: str, model_type: str):
-    if model_type == "neural-net":
-        import torch
-        model = torch.load(model_path)
-        model.eval()
-        return model
-    else:
-        return joblib.load(model_path)
+def load_model_by_type(model_type: str):
+    """Centralized model loader using ml_models with metadata-aware paths."""
+    model = load_single_model(model_type)
+    if model is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to load model: {model_type}")
+    return model
 
 
 @router.post("/{model_type}", response_model=MetricsResponse)
@@ -61,7 +60,7 @@ def get_metrics(model_type: str):
 
         # Load model
         model_path = get_latest_model(model_type)
-        model = load_model(model_path, model_type)
+        model = load_model_by_type(model_type)
 
         # Predict
         if model_type == "neural-net":

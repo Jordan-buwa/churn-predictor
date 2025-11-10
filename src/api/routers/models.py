@@ -51,23 +51,60 @@ def fetch_models_from_mlflow():
 
 
 def fetch_models_from_local():
-    """Fetching models from local model directory."""
+    """Fetch models from local store, enriched with versions and metadata."""
     if not os.path.exists(MODEL_DIR):
         return []
 
     models = []
-    for model_name in os.listdir(MODEL_DIR):
-        model_path = os.path.join(MODEL_DIR, model_name)
-        if os.path.isdir(model_path):
-            metadata_file = os.path.join(model_path, "metadata.json")
-            info = {"model_name": model_name, "path": model_path, "source": "local"}
+    for model_type in os.listdir(MODEL_DIR):
+        base_dir = os.path.join(MODEL_DIR, model_type)
+        if not os.path.isdir(base_dir):
+            continue
+
+        metadata_file = os.path.join(base_dir, "metadata.json")
+        versions_dir = os.path.join(base_dir, "versions")
+
+        info = {
+            "model_type": model_type,
+            "base_path": base_dir,
+            "source": "local",
+            "latest_version": None,
+            "latest_path": None,
+            "versions": []
+        }
+
+        # Load metadata if present
+        try:
             if os.path.exists(metadata_file):
-                try:
-                    with open(metadata_file, "r") as f:
-                        info.update(json.load(f))
-                except Exception:
-                    pass
-            models.append(info)
+                with open(metadata_file, "r") as f:
+                    meta = json.load(f)
+                info["latest_version"] = meta.get("latest_version")
+                info["latest_path"] = meta.get("latest_path")
+                # Preserve stored versions list
+                if isinstance(meta.get("versions"), list):
+                    info["versions"] = meta["versions"]
+        except Exception:
+            # If metadata is unreadable, continue with scan fallback
+            pass
+
+        # Fallback: scan versions directory to populate versions list
+        try:
+            if os.path.exists(versions_dir):
+                for fname in os.listdir(versions_dir):
+                    fpath = os.path.join(versions_dir, fname)
+                    if os.path.isfile(fpath):
+                        info["versions"].append({
+                            "version": os.path.splitext(fname)[0],
+                            "path": fpath,
+                            "created_at": None,
+                            "format": os.path.splitext(fname)[1].lstrip("."),
+                            "schema_path": None,
+                        })
+        except Exception:
+            pass
+
+        models.append(info)
+
     return models
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 from .utils.models_types import ModelType, validate_model_type, normalize_model_type
+from .utils.config import get_model_path as config_get_model_path
 
 
 logger = logging.getLogger(__name__)
@@ -21,53 +22,13 @@ from pathlib import Path
 from typing import Optional
 
 def get_model_path(model_type: str) -> Path:
-    """
-    Get the most recent model file from the 'models/' directory that matches
-    the identifier for the given model_type.
-    """
-    # Normalize model type first
+    """Return latest model path using centralized config and structured metadata."""
     normalized_type = normalize_model_type(model_type)
-    
     if not validate_model_type(normalized_type):
         raise ValueError(f"Unknown model type: {model_type}. Supported: {ModelType.get_all_types()}")
-    
-    models_dir = Path("models/")
-    if not models_dir.exists() or not models_dir.is_dir():
-        raise FileNotFoundError(f"Models directory not found: {models_dir}")
-
-    identifiers = {
-        ModelType.XGBOOST: {"xgboost", "xgb"},
-        ModelType.RANDOM_FOREST: {"random_forest", "random-forest", "rf", ".joblib"},
-        ModelType.NEURAL_NET: {"neural", "nn", ".pth", ".h5", ".pt"},
-    }
-
-    patterns = identifiers[normalized_type]
-    
-    candidates: list[tuple[float, Path]] = []
-    
-    for file_path in models_dir.iterdir():
-        if not file_path.is_file():
-            continue
-        
-        name_lower = file_path.name.lower()
-        suffix_lower = file_path.suffix.lower()
-        
-        matches = any(
-            pat.lstrip(".") in name_lower or  # substring match
-            (pat.startswith(".") and pat == suffix_lower)  # exact suffix match
-            for pat in patterns
-        )
-        
-        if matches:
-            mtime = file_path.stat().st_mtime
-            candidates.append((mtime, file_path))
-    
-    if not candidates:
-        raise FileNotFoundError(f"No model file found for type '{model_type}' in {models_dir}")
-    
-    # Return the most recently modified file
-    latest_path = sorted(candidates, key=lambda x: x[0], reverse=True)[0][1]
-    return latest_path
+    # Use API config's standardized retrieval (metadata-aware)
+    path_str = config_get_model_path(normalized_type)
+    return Path(path_str)
 
 def load_pickle_model(path: Path) -> Any:
     """Load a pickle model with error handling"""

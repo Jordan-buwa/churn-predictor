@@ -222,19 +222,47 @@ class NeuralNetworkTrainer():
             self.logger.info("\n" + classification_report(y, y_pred_full))
         return self
         
-    # Save model with timestamp
+    # Save model using centralized store (full torch model)
     def save_model(self):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        mod_name = f"neural_net_model_{timestamp}.pth"
-        model_path = os.path.join(MODEL_DIR, mod_name)
         try:
-            torch.save(self.model.state_dict(), model_path)
+            from src.models.utils.model_store import save_model_artifacts
+            # Build schema artifact for parity with RF/XGB
+            target_col = self.config.get("target_column", "target")
+            schema = {
+                "model_type": "neural_net",
+                "required_columns": list(self.X.columns) if hasattr(self.X, "columns") else [],
+                "dtypes": {col: str(dtype) for col, dtype in (self.X.dtypes.items() if hasattr(self.X, "dtypes") else [])},
+                "target_column": target_col,
+                "schema_version": "1.0",
+                "timestamp": datetime.now().isoformat(),
+                "feature_count": int(self.X.shape[1]) if hasattr(self.X, "shape") else None,
+                "sample_count": int(self.X.shape[0]) if hasattr(self.X, "shape") else None,
+                "class_distribution": self.y.value_counts().to_dict() if hasattr(self.y, "value_counts") else {},
+                "training_data_hash": self.dvc_hash or "N/A",
+            }
+
+            # Version hint for consistent naming
+            version_hint = f"neural_net_churn_v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+            saved = save_model_artifacts(
+                model=self.model,
+                model_type="neural_net",
+                metrics=None,
+                schema=schema,
+                version_hint=version_hint,
+            )
+            model_path = saved["model_path"]
         except Exception as e:
             self.logger.error(f"Error saving model: {e}")
             print(f"Error saving model: {e}")
             raise
+
         assert os.path.exists(model_path), f"Model file not found at {model_path}"
-        mlflow.log_artifact(mod_name, artifact_path="nn_churn_model", registered_model_name="nn_churn_model", run_id=mlflow.active_run().info.run_id)
+        try:
+            mlflow.log_artifact(model_path, artifact_path="nn_churn_model")
+        except Exception:
+            # Logging to MLflow is optional; ignore if unavailable
+            pass
         print(f"Model saved at {model_path}")
         self.logger.info(f"Model saved at {model_path}")
         return model_path
