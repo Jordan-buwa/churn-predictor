@@ -6,3 +6,4 @@ dvc.yml
 /raw
 /processed
 /backup
+/snapshots
