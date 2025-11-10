@@ -36,8 +36,8 @@ jobs:
 
       - name: Pull data and models
         run: |
-          dvc pull -r azureblob --force
-          dvc pull -r churn_models --force
+          dvc pull -r azureblob --jobs 2 --force
+          dvc pull -r churn_models --jobs 2 --force
 
       - name: Check for changes
         id: changes

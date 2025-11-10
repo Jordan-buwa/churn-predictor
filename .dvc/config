@@ -6,4 +6,7 @@
     read_timeout = 300
     account_name = dvcchurnstorage
 ['remote "churn_models"']
+    connection_timeout = 300
+    read_timeout = 300
     url = azure://dvc-remote/models
+    account_name = dvcchurnstorage

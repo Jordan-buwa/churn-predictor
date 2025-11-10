@@ -18,7 +18,7 @@ torchvision = "^0.24.0"
 imbalanced-learn = "^0.14.0"
 fastapi = {extras = ["standard"], version = "^0.120.0"}
 uvicorn = {extras = ["standard"], version = "^0.38.0"}
-python-multipart = "^0.0.20"
+python-multipart = "0.0.6"
 azure-storage-blob = "^12.27.0"
 PyYAML = "^6.0.3"
 opencensus-ext-azure = "^1.1.15"
