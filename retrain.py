@@ -240,8 +240,8 @@ class ModelRetrainer:
         self.logger.info("Starting Neural Network retraining...")
         
         try:
-            # Load NN config
-            with open("config/config_train_nn.yaml", "r") as f:
+            # Load NN config - using quick config for faster schema generation
+            with open("config/config_train_nn_quick.yaml", "r") as f:
                 nn_config = yaml.safe_load(f)
             
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

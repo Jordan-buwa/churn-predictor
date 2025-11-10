@@ -122,11 +122,12 @@ class NeuralNetworkTrainer():
         mlflow.set_tracking_uri(mlflow_uri)
         mlflow.set_experiment("Neuralnet_Churn_Experiment")
         self.logger.info(f"MLflow tracking URI: {mlflow_uri}")
-        with mlflow.start_run():
+        # Use nested run to avoid conflicts with parent MLflow run
+        with mlflow.start_run(nested=True):
             script_name = os.path.basename(__file__) if "__file__" in globals() else "notebook"
             mlflow.set_tag("script_version", script_name)
-            mlflow.log_param("num_samples", X.shape[0])
-            mlflow.log_param("num_features", X.shape[1])
+            mlflow.log_param("num_samples", self.X.shape[0])
+            mlflow.log_param("num_features", self.X.shape[1])
 
             # Log hyperparameters
             mlflow.log_params(self.best_params)
@@ -135,9 +136,9 @@ class NeuralNetworkTrainer():
             y_true_global = []
             y_pred_global = []
             self.logger.info("Training final model with cross-validation...")
-            for fold, (train_idx, test_idx) in enumerate(self.skf.split(X, y)):
-                X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
-                X_test, y_test = X.iloc[test_idx], y.iloc[test_idx]
+            for fold, (train_idx, test_idx) in enumerate(self.skf.split(self.X, self.y)):
+                X_train, y_train = self.X.iloc[train_idx], self.y.iloc[train_idx]
+                X_test, y_test = self.X.iloc[test_idx], self.y.iloc[test_idx]
                 X_train_res, y_train_res = self.smote.fit_resample(X_train, y_train)
 
                 X_train_tensor = torch.tensor(X_train_res.values, dtype=torch.float32)
@@ -148,7 +149,7 @@ class NeuralNetworkTrainer():
                 train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
-                self.model = ChurnNN(input_size=X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
+                self.model = ChurnNN(input_size=self.X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
 
                 self.model, _ = self.train_model(train_loader)
                 disp, metrics = self.evaluate_model(X_test_tensor, y_test_tensor)
@@ -159,8 +160,7 @@ class NeuralNetworkTrainer():
                     plt.savefig("images/confusion_matrix.png")
                     mlflow.log_artifact("images/confusion_matrix.png")
                 # Predict probabilities and determine best threshold
-                self.logger.info(f"Shape of X_test: {X_test.shape}\nShape of model output: {self.model.predict_proba(X_test).shape}")
-                y_probs = self.model.predict_proba(X_test)[:, 1]
+                y_probs = self.model.predict_proba(X_test).flatten()
                 best_threshold, best_f1 = self.get_prediction_threshold(y_test, y_probs)
                 y_pred = (y_probs >= best_threshold).astype(int)
 
@@ -212,15 +212,15 @@ class NeuralNetworkTrainer():
                 y_true_global, y_pred_global, average="binary")
             self.logger.info(f"Global F1 across all folds: {global_f1:.4f}")
             mlflow.log_metric("global_f1", global_f1)
-            y_probs_full = self.model.predict_proba(X)[:, 1]
-            best_threshold, best_f1 = self.get_prediction_threshold(y, y_probs_full)
+            y_probs_full = self.model.predict_proba(self.X).flatten()
+            best_threshold, best_f1 = self.get_prediction_threshold(self.y, y_probs_full)
             y_pred_full = (y_probs_full >= best_threshold).astype(int)
 
-            acc = accuracy_score(y, y_pred_full)
-            roc = roc_auc_score(y, y_probs_full)
+            acc = accuracy_score(self.y, y_pred_full)
+            roc = roc_auc_score(self.y, y_probs_full)
             self.logger.info(
                 f"Final model: Accuracy={acc:.4f}, F1={best_f1:.4f}, ROC-AUC={roc:.4f}")
-            self.logger.info("\n" + classification_report(y, y_pred_full))
+            self.logger.info("\n" + classification_report(self.y, y_pred_full))
         return self
         
     # Save model using centralized store (full torch model)

@@ -1,0 +1,31 @@
+device: cpu
+target_column: "churn"
+training:
+  num_epochs: 5
+  n_trials: 2
+  random_state: 42
+  num_splits_cv: 2
+
+optuna:
+  n_layers:
+    min: 1
+    max: 2
+  n_units:
+    min: 32
+    max: 128
+    step: 32
+  dropout_rate:
+    min: 0.1
+    max: 0.3
+  learning_rate:
+    min: 0.0001
+    max: 0.001
+  batch_size: [32, 64]
+  impute_strategy: ["median"]
+
+paths:
+  logs: src/models/tuning/logs/optuna_tuning.log
+
+logging:
+  log_path: "src/data_pipeline/logs/train_nn.log"
+  log_level: "INFO"
