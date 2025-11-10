@@ -329,17 +329,17 @@ class ModelRetrainer:
             self.logger.info(f"Data prepared: {X.shape[0]} samples, {X.shape[1]} features")
             self.generate_test_data_simple(X, y)
 
-            # Step 2: Retrain models
+            # Step 2: Retrain models in the specified order
             self.logger.info("Retraining models...")
-            
-            if "xgboost" in self.models_to_retrain:
-                results.append(self.retrain_xgboost(X, y))
-            
-            if "random_forest" in self.models_to_retrain:
-                results.append(self.retrain_random_forest(X, y))
-            
-            if "neural_net" in self.models_to_retrain:
-                results.append(self.retrain_neural_network(X, y))
+            for mt in self.models_to_retrain:
+                if mt == "xgboost":
+                    results.append(self.retrain_xgboost(X, y))
+                elif mt == "random_forest":
+                    results.append(self.retrain_random_forest(X, y))
+                elif mt == "neural_net":
+                    results.append(self.retrain_neural_network(X, y))
+                else:
+                    self.logger.warning(f"Unknown model type requested: {mt}")
             
             # Step 3: Evaluate results
             self.logger.info("Evaluating retraining results...")
