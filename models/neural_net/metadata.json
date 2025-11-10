@@ -1,0 +1,28 @@
+{
+  "model_type": "neural_net",
+  "latest_version": "neural_net_churn_v20251110_143533",
+  "latest_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251110_143533.pth",
+  "versions": [
+    {
+      "version": "neural_net_churn_v20251110_143533",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251110_143533.pth",
+      "created_at": "2025-11-10T14:35:33.292684",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.6146290240676004,
+          "F1": 0.46301427333916473,
+          "Recall": 0.738953333189692,
+          "Precision": 0.3409046474942087,
+          "Accuracy": 0.5060461941710731
+        },
+        "global_f1": 0.4726532826912642,
+        "final_accuracy": 0.47948541106591414,
+        "final_f1": 0.4778096273598893,
+        "final_roc_auc": 0.6250235351586154,
+        "final_threshold": 0.47000000000000003
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/schemas/neural_net_churn_v20251110_143533_schema.json"
+    }
+  ]
+}

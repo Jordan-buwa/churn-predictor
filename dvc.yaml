@@ -18,7 +18,6 @@ stages:
       - config/config_ingest.yaml
     outs:
       - data/processed/processed_data.csv
-      - src/data_pipeline/preprocessing_artifacts.json
     metrics:
       - src/data_pipeline/preprocessing_artifacts.json
 
