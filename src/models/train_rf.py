@@ -215,69 +215,70 @@ def evaluate_models(X, y, train_config):
 
     return None, None, None, run_id
 
-# Running evaluation
-best_model_name, best_model, best_metrics, run_id = evaluate_models(X, y, train_config)
+if __name__ == "__main__":
+    # Running evaluation only when executed as a script, not on import
+    best_model_name, best_model, best_metrics, run_id = evaluate_models(X, y, train_config)
 
-# Saving & logging best model
-if best_model_name:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    model_type = "random_forest"
-    model_version_name = f"random_forest_churn_v{timestamp}"
+    # Saving & logging best model
+    if best_model_name:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        model_type = "random_forest"
+        model_version_name = f"random_forest_churn_v{timestamp}"
 
-    # Prepare and save schema locally (also used by the store util)
-    schema, local_schema_path = save_data_schema(X, y, TARGET_COL, model_type, model_version_name)
+        # Prepare and save schema locally (also used by the store util)
+        schema, local_schema_path = save_data_schema(X, y, TARGET_COL, model_type, model_version_name)
 
-    # Standardized persistence with metadata
-    try:
-        from src.models.utils.model_store import save_model_artifacts
-        saved = save_model_artifacts(
-            model=best_model,
-            model_type=model_type,
-            metrics=best_metrics,
-            schema=schema,
-            version_hint=model_version_name,
+        # Standardized persistence with metadata
+        try:
+            from src.models.utils.model_store import save_model_artifacts
+            saved = save_model_artifacts(
+                model=best_model,
+                model_type=model_type,
+                metrics=best_metrics,
+                schema=schema,
+                version_hint=model_version_name,
+            )
+            local_model_path = saved["model_path"]
+            logger.info(f"Best model saved locally at: {local_model_path}")
+        except Exception as e:
+            logger.error(f"Error saving RandomForest model via store: {e}")
+            # Fallback to legacy save to avoid failure
+            versions_dir = os.path.join(MODEL_DIR, model_type, "versions")
+            os.makedirs(versions_dir, exist_ok=True)
+            local_model_path = os.path.join(versions_dir, f"{model_version_name}.joblib")
+            joblib.dump(best_model, local_model_path)
+            logger.info(f"Best model saved locally (legacy) at: {local_model_path}")
+        
+        # Logging model to MLflow with model type in name
+        mlflow_registry_name = f"{model_type}_churn_model"
+        mlflow.sklearn.log_model(
+            best_model, 
+            artifact_path="model",
+            registered_model_name=mlflow_registry_name,
+            input_example=X.iloc[:5]
         )
-        local_model_path = saved["model_path"]
-        logger.info(f"Best model saved locally at: {local_model_path}")
-    except Exception as e:
-        logger.error(f"Error saving RandomForest model via store: {e}")
-        # Fallback to legacy save to avoid failure
-        versions_dir = os.path.join(MODEL_DIR, model_type, "versions")
-        os.makedirs(versions_dir, exist_ok=True)
-        local_model_path = os.path.join(versions_dir, f"{model_version_name}.joblib")
-        joblib.dump(best_model, local_model_path)
-        logger.info(f"Best model saved locally (legacy) at: {local_model_path}")
-    
-    # Logging model to MLflow with model type in name
-    mlflow_registry_name = f"{model_type}_churn_model"
-    mlflow.sklearn.log_model(
-        best_model, 
-        artifact_path="model",
-        registered_model_name=mlflow_registry_name,
-        input_example=X.iloc[:5]
-    )
-    
-    # Logging additional metadata
-    mlflow.log_param("model_type", model_type)
-    mlflow.log_param("model_version", model_version_name)
-    mlflow.log_param("local_schema_path", local_schema_path)
-    mlflow.log_param("local_model_path", local_model_path)
-    mlflow.log_artifact(local_model_path, "local_model")
-    
-    logger.info(f"Model registered in MLflow as '{mlflow_registry_name}'")
-    logger.info(f"Training completed. Best model: {best_model_name} with metrics: {best_metrics}")
-    
-    # Printing summary
-    print(f"\n=== TRAINING COMPLETED ===")
-    print(f"Model Type: {model_type}")
-    print(f"Model Version: {model_version_name}")
-    print(f"Local Model Path: {local_model_path}")
-    print(f"Local Schema Path: {local_schema_path}")
-    print(f"MLflow Model: {mlflow_registry_name}")
-    print(f"Performance Metrics: {best_metrics}")
-    print(f"Features: {X.shape[1]}, Samples: {X.shape[0]}")
-    
-else:
-    logger.error("No model met the performance thresholds")
-    print("Training failed: No model met the performance thresholds")
+        
+        # Logging additional metadata
+        mlflow.log_param("model_type", model_type)
+        mlflow.log_param("model_version", model_version_name)
+        mlflow.log_param("local_schema_path", local_schema_path)
+        mlflow.log_param("local_model_path", local_model_path)
+        mlflow.log_artifact(local_model_path, "local_model")
+        
+        logger.info(f"Model registered in MLflow as '{mlflow_registry_name}'")
+        logger.info(f"Training completed. Best model: {best_model_name} with metrics: {best_metrics}")
+        
+        # Printing summary
+        print(f"\n=== TRAINING COMPLETED ===")
+        print(f"Model Type: {model_type}")
+        print(f"Model Version: {model_version_name}")
+        print(f"Local Model Path: {local_model_path}")
+        print(f"Local Schema Path: {local_schema_path}")
+        print(f"MLflow Model: {mlflow_registry_name}")
+        print(f"Performance Metrics: {best_metrics}")
+        print(f"Features: {X.shape[1]}, Samples: {X.shape[0]}")
+        
+    else:
+        logger.error("No model met the performance thresholds")
+        print("Training failed: No model met the performance thresholds")

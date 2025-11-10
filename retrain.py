@@ -256,7 +256,7 @@ class ModelRetrainer:
             self.logger.info("Neural Network retraining completed successfully")
             return {
                 "status": "success",
-                "metrics": {"f1": 0.0},  
+                "metrics": getattr(trainer, "final_metrics", {}),
                 "model": "neural_net",
                 "model_path": model_path
             }

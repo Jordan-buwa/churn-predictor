@@ -11,7 +11,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies
-RUN poetry install --no-dev --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi
 
 # Stage 2: Create the final image
 FROM python:3.9-slim
