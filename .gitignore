@@ -25,7 +25,6 @@ tests/
 *test*.py
 test.sh
 note.ipynb
-dvc.yaml
 tree.sh
 src/data_pipeline/preprocessing_artifacts*
 doc.sh

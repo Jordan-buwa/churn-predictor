@@ -1,0 +1,65 @@
+stages:
+  ingest:
+    cmd: python src/data_pipeline/ingest.py
+    deps:
+      - src/data_pipeline/ingest.py
+      - config/config_ingest.yaml
+    outs:
+      - data/snapshots
+      - data/backup/ingested.csv
+
+  preprocess:
+    cmd: python -c "from src.data_pipeline.pipeline_data import fetch_preprocessed; fetch_preprocessed()"
+    deps:
+      - src/data_pipeline/pipeline_data.py
+      - src/data_pipeline/preprocess.py
+      - src/data_pipeline/validate_after_preprocess.py
+      - config/config_process.yaml
+      - config/config_ingest.yaml
+    outs:
+      - data/processed/processed_data.csv
+      - src/data_pipeline/preprocessing_artifacts.json
+    metrics:
+      - src/data_pipeline/preprocessing_artifacts.json
+
+  train_xgb:
+    cmd: python src/models/train_xgb.py
+    deps:
+      - src/models/train_xgb.py
+      - config/config_train_xgb.yaml
+      - data/processed/processed_data.csv
+      - src/data_pipeline/preprocessing_artifacts.json
+    outs:
+      - models/xgboost/versions
+      - models/xgboost/schemas
+      - models/xgboost/metadata.json
+    metrics:
+      - models/xgboost/metadata.json
+
+  train_nn:
+    cmd: python src/models/train_nn.py
+    deps:
+      - src/models/train_nn.py
+      - config/config_train_nn.yaml
+      - data/processed/processed_data.csv
+      - src/data_pipeline/preprocessing_artifacts.json
+    outs:
+      - models/neural_net/versions
+      - models/neural_net/schemas
+      - models/neural_net/metadata.json
+    metrics:
+      - models/neural_net/metadata.json
+
+  train_rf:
+    cmd: python src/models/train_rf.py
+    deps:
+      - src/models/train_rf.py
+      - config/config_train_rf.yaml
+      - data/processed/processed_data.csv
+      - src/data_pipeline/preprocessing_artifacts.json
+    outs:
+      - models/random_forest/versions
+      - models/random_forest/schemas
+      - models/random_forest/metadata.json
+    metrics:
+      - models/random_forest/metadata.json

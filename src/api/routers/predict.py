@@ -13,13 +13,13 @@ import json
 import logging
 
 from src.api.utils.config import APIConfig, get_model_path, get_allowed_model_types
-from src.api.utils.response_models import PredictionResponse, FeatureData
+from src.api.utils.response_models import PredictionResponse
 from src.api.utils.error_handlers import (
      DataNotFoundError, PreprocessingError,
     handle_model_error, handle_data_error, raise_if_model_not_found
 )
 from src.api.utils.models_types import ModelType, validate_model_type
-from src.api.ml_models import load_single_model, get_model_info
+from src.api.ml_models import load_single_model
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)

@@ -4,5 +4,7 @@
     url = azure://dvc-remote/churn_data
     connection_timeout = 300
     read_timeout = 300
+    account_name = dvcchurnstorage
+    account_key = 97B4ScWHwnAJTWt8OkXyUL3K3xNRQeq0yCoOhalY1+stq66pNHil+WiRIYFb+DJtMPGBO4OEJ9hP+ASt6Q6dZw==
 ['remote "churn_models"']
     url = azure://dvc-remote/models

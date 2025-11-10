@@ -21,6 +21,31 @@ By developing a holistic view of customer interactions, telecom companies can pr
 - Tuning techniques: Gridsearch, Optuna
 - Experiment tracking: MLFlow
 
+## Data Versioning (DVC)
+- Tracks raw snapshots and processed datasets with reproducible stages.
+- Pipeline stages defined in `dvc.yaml`:
+  - `ingest`: runs `python src/data_pipeline/ingest.py` and writes snapshots to `data/snapshots/` and a backup CSV to `data/backup/ingested.csv`.
+  - `preprocess`: executes the preprocessing and validation flow, producing `data/processed/processed_data.csv` and `src/data_pipeline/preprocessing_artifacts.json` (also used as metrics).
+  - `train_xgb`: trains XGBoost on processed data, persisting under `models/xgboost/` with `versions/`, `schemas/`, and `metadata.json`.
+  - `train_nn`: trains the Neural Net on processed data, persisting under `models/neural_net/` with `versions/`, `schemas/`, and `metadata.json`.
+  - `train_rf`: trains Random Forest on processed data, persisting under `models/random_forest/` with `versions/`, `schemas/`, and `metadata.json`.
+
+### Common commands
+- Initialize (already present if `.dvc/` exists): `dvc init`
+- Reproduce pipeline end‑to‑end: `dvc repro`
+- Reproduce a specific stage (e.g., RF only): `dvc repro train_rf`
+- Show status vs workspace: `dvc status`
+- Compare metrics across versions: `dvc metrics show`
+- Set up remote storage (example):
+  - `dvc remote add -d storage s3://your-bucket/path` (or Azure/GDrive)
+  - `dvc push` to upload tracked artifacts
+  - `dvc pull` to download tracked artifacts
+
+Notes:
+- `data/snapshots.dvc` tracks the snapshots directory; running `ingest` updates it with new timestamped files.
+- The preprocessing stage emits `preprocessing_artifacts.json` with keys like `n_samples`, `n_features`, and transformation parameters; DVC uses this JSON as metrics.
+- Ensure raw input `config/config_ingest.yaml` points to a local CSV (or database) accessible from your environment.
+
 ## Project structure
 ```text
 ├── README.md
@@ -57,6 +82,7 @@ By developing a holistic view of customer interactions, telecom companies can pr
 │   └── train_api.md
 |   ├── validation.md
 ├── dvc.lock
+├── dvc.yaml
 ├── images
 │   ├── Churn_predicition_system_architecture.png
 │   ├── churn.webp
