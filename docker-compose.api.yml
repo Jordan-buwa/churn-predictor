@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    container_name: churn-prediction-api
+    container_name: churn-prediction-api-jaw
     ports:
       - "8000:8000"
     volumes:
