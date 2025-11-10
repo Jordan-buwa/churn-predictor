@@ -421,7 +421,7 @@ class DriftedDataSimulator:
     
     def __init__(self, random_state: int = 42, logger: Optional[logging.Logger] = None):
         """
-        Initialize the DriftedDataSimulator.
+        Initializing the DriftedDataSimulator.
         
         Parameters:
         - random_state: int, random seed for reproducibility
@@ -455,7 +455,7 @@ class DriftedDataSimulator:
                        shift_marginal_distributions: bool = True,
                        extreme_value_injection: bool = True):
         """
-        Configure the strength and type of data drift to inject.
+        Configuring the strength and type of data drift to inject.
         
         Parameters:
         - target_drift_strength: 0-1, how much to shift target distribution
@@ -530,19 +530,21 @@ class DriftedDataSimulator:
 
         self.logger.info(f"Final cleaned data shape: {df.shape}")
         return df
+
+# The classes are automatically called when the script is run
 def main():
     """Main function to demonstrate data simulation."""
     import time
     
-    print("=== Starting Data Simulation ===")
+    print("Starting Data Simulation")
     
-    # Initialize simulators
+    # Initializing simulators
     realistic_simulator = RealisticDataSimulator(random_state=42)
     drifted_simulator = DriftedDataSimulator(random_state=42)
     
     try:
         # Realistic Data Simulation
-        print("\n--- Realistic Data Simulation ---")
+        print("\n Realistic Data Simulation")
         start_time = time.time()
         
         realistic_simulator.fit(
@@ -560,7 +562,7 @@ def main():
         print(f"✓ Simulation completed in {time.time() - start_time:.2f} seconds")
         
         # Drifted Data Simulation  
-        print("\n--- Drifted Data Simulation ---")
+        print("\n Drifted Data Simulation")
         start_time = time.time()
         
         # Configuring drift
@@ -570,22 +572,18 @@ def main():
             categorical_drift_strength=0.5
         )
         
-        # Note: You'll need to implement the fit and simulate methods for DriftedDataSimulator
-        # drifted_data = drifted_simulator.simulate(n_samples=1000)
-        # print(f"Generated drifted data: {drifted_data.shape}")
-        
         print(f"Drift configuration completed in {time.time() - start_time:.2f} seconds")
         
         # Saving sample of generated data
-        print("\n--- Saving Results ---")
+        print("\n Saving Results ")
         realistic_data.head(100).to_csv("data/processed/simulated_realistic_sample.csv", index=False)
         print("Saved realistic data sample to: data/processed/simulated_realistic_sample.csv")
         
-        print(f"\n=== Data Simulation Completed Successfully ===")
+        print(f"\n Data Simulation Completed Successfully")
         
     except Exception as e:
         print(f"Error during simulation: {e}")
         raise
 
 if __name__ == "__main__":
-        main()
+    main()
