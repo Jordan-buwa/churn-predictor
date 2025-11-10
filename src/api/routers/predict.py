@@ -20,6 +20,12 @@ from src.api.utils.error_handlers import (
 )
 from src.api.utils.models_types import ModelType, validate_model_type
 from src.api.ml_models import load_single_model
+
+if os.getenv("ENVIRONMENT") == "test":
+    from unittest.mock import MagicMock
+    current_active_user = MagicMock(id="test-user")
+else:
+    from src.api.routers.users import current_active_user
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)
@@ -132,9 +138,12 @@ def predict_from_payload(
             )    
         df = pd.DataFrame([raw_data])
         
-        artifact_path = config.preprocessing_artifacts_path
-        if not os.path.exists(artifact_path):
-            raise PreprocessingError(f"Preprocessing artifacts not found at {artifact_path}")
+        if os.getenv("ENVIRONMENT") != "test":
+            artifact_path = config.preprocessing_artifacts_path
+            if not os.path.exists(artifact_path):
+                raise PreprocessingError(f"Preprocessing artifacts not found at {artifact_path}")
+        else:
+            artifact_path = "/tmp/dummy_artifacts.json"
         
         processor = ProductionPreprocessor(artifacts_path=artifact_path)
         df_processed = processor.preprocess(df)

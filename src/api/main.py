@@ -112,7 +112,10 @@ if os.getenv("ENVIRONMENT", "development") != "test":
     app.include_router(ingest.router,  tags=["Data ingestion"])
     app.include_router(auth.router)
 else:
-    logger.info("Test environment detected: skipping heavy router imports")
+    from src.api.routers import predict, train
+    app.include_router(predict.router, tags=["predictions"])
+    app.include_router(train.router,   tags=["training"])
+    logger.info("Test environment detected: including predict and train routers")
 
 @app.get("/", response_class=HTMLResponse)
 async def ui_root(request: Request):

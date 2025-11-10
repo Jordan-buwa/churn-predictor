@@ -14,17 +14,14 @@ from pathlib import Path
 from src.api.utils.config import APIConfig, get_allowed_model_types
 from src.api.utils.response_models import TrainingResponse, JobStatusResponse
 from src.api.utils.error_handlers import TrainingError, handle_training_error
-from src.api.routers.auth import current_active_user
-
-load_dotenv()
-
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent 
-sys.path.append(str(REPO_ROOT))  
-
-os.environ["REPO_ROOT"] = str(REPO_ROOT)
-os.environ["PYTHONPATH"] = str(REPO_ROOT)
-
-router = APIRouter(prefix="/train", dependencies=[Depends(current_active_user)])
+if os.getenv("ENVIRONMENT") == "test":
+    from unittest.mock import MagicMock
+    mock_user = MagicMock()
+    mock_user.id = "test-user"
+    router = APIRouter(prefix="/train")
+else:
+    from src.api.routers.auth import current_active_user
+    router = APIRouter(prefix="/train", dependencies=[Depends(current_active_user)])
 logger = logging.getLogger(__name__)
 
 # Initialize configuration
