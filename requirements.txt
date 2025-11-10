@@ -17,6 +17,7 @@ fastapi[standard]
 uvicorn[standard]
 python-multipart
 azure-storage-blob
+fastapi-users[sqlalchemy]
 PyYAML
 azure-storage-blob
 opencensus-ext-azure
