@@ -16,12 +16,7 @@ mlruns/
 *.joblib
 dvc_refresh.sh
 try.py
-.pytest_cache/
-tests/unit/
-tests/integration/
-!tests/__init__.py
-tests/
-*test*.py
+ .pytest_cache/
 test.sh
 note.ipynb
 tree.sh

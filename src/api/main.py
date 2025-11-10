@@ -12,12 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
-from src.api.routers import predict, train, validate, metrics, ingest, auth
 from src.api.db import Base, engine
-
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine)
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
 from src.api.utils.config import get_allowed_model_types 
 
@@ -108,12 +103,16 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error", "error": str(exc)}
     )
 
-app.include_router(predict.router, tags=["predictions"])
-app.include_router(train.router,   tags=["training"])
-app.include_router(validate.router,tags=["Data Validation"])
-app.include_router(metrics.router, tags=["metrics"])
-app.include_router(ingest.router,  tags=["Data ingestion"])
-app.include_router(auth.router)
+if os.getenv("ENVIRONMENT", "development") != "test":
+    from src.api.routers import predict, train, validate, metrics, ingest, auth
+    app.include_router(predict.router, tags=["predictions"])
+    app.include_router(train.router,   tags=["training"])
+    app.include_router(validate.router,tags=["Data Validation"])
+    app.include_router(metrics.router, tags=["metrics"])
+    app.include_router(ingest.router,  tags=["Data ingestion"])
+    app.include_router(auth.router)
+else:
+    logger.info("Test environment detected: skipping heavy router imports")
 
 @app.get("/", response_class=HTMLResponse)
 async def ui_root(request: Request):
@@ -176,3 +175,9 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+@app.on_event("startup")
+def on_startup():
+    # Skip DB initialization in test environment to avoid external deps
+    if os.getenv("ENVIRONMENT", "development") == "test":
+        return
+    Base.metadata.create_all(bind=engine)

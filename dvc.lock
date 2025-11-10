@@ -19,6 +19,6 @@ stages:
       size: 21761707
     - path: data/snapshots
       hash: md5
-      md5: e4b04176b0db515fba36912c45cb7621.dir
+      md5: 02789122f012a7c95a20fd24f1a80580.dir
       size: 21761707
       nfiles: 1

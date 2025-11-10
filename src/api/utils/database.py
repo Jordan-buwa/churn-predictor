@@ -46,10 +46,14 @@ def initialize_connection_pool():
         logger.error(f"Error creating connection pool: {str(e)}")
         return False
 
-if not initialize_connection_pool():
-    raise RuntimeError(
-        "Database connection pool failed to initialize. "
-    )
+if os.getenv("ENVIRONMENT", "development") != "test":
+    if not initialize_connection_pool():
+        raise RuntimeError(
+            "Database connection pool failed to initialize. "
+        )
+else:
+    # In test mode, defer pool initialization and avoid hard failure on import
+    logger.info("Skipping PostgreSQL pool initialization in test environment")
 
 @contextmanager
 def get_db_connection():
