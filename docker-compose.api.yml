@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    container_name: churn-prediction-api
+    container_name: churn-prediction-api-jaw
     ports:
       - "8000:8000"
     volumes:
@@ -22,6 +22,7 @@ services:
       - POSTGRES_DB_NAME=postgres
       - POSTGRES_DB_USER=jawpostgresdb
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - AUTH_SECRET=${AUTH_SECRET}
     networks:
       - churn-network
     restart: unless-stopped

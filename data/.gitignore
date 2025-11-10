@@ -1,5 +1,4 @@
 /ingestion
-/snapshots
 dvc.yml
 /production
 /validated
@@ -7,3 +6,4 @@ dvc.yml
 /raw
 /processed
 /backup
+/snapshots

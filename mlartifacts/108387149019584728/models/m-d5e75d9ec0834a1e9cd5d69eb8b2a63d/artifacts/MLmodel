@@ -1,0 +1,40 @@
+artifact_path: mlflow-artifacts:/108387149019584728/models/m-d5e75d9ec0834a1e9cd5d69eb8b2a63d/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.14
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.2
+is_signature_from_type_hint: false
+mlflow_version: 3.5.1
+model_id: m-d5e75d9ec0834a1e9cd5d69eb8b2a63d
+model_size_bytes: 8546873
+model_uuid: m-d5e75d9ec0834a1e9cd5d69eb8b2a63d
+prompts: null
+run_id: b3c3790fa8d742c0b0abaaa112b2bab3
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "engagement_index", "required": true}, {"type":
+    "double", "name": "model_change_rate", "required": true}, {"type": "double", "name":
+    "overage_ratio", "required": true}, {"type": "double", "name": "call_activity_score",
+    "required": true}, {"type": "double", "name": "call_quality_issues", "required":
+    true}, {"type": "double", "name": "cust_engagement_score", "required": true},
+    {"type": "double", "name": "overuse_behavior", "required": true}, {"type": "double",
+    "name": "device_tenure_index", "required": true}, {"type": "double", "name": "demographic_index",
+    "required": true}]'
+  outputs: '[{"type": "long", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-11-10 02:14:45.188273'

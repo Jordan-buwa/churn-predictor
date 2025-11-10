@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "churn-prediction"
+version = "0.1.0"
+description = "A churn prediction API"
+authors = ["Jordan Buwa - Aderonke Ajefolakemi - Wycliffe Nzomo (jmbouobda, aajefolakemi, wnzomo)@aimsammi.org"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+dvc = {extras = ["azure"], version = "^3.63.0"}
+pandas = "^2.3.3"
+numpy = "^2.3.4"
+scikit-learn = "^1.7.2"
+scipy = "^1.16.2"
+joblib = "^1.5.2"
+xgboost = "^3.1.1"
+torch = "^2.9.0"
+torchvision = "^0.24.0"
+imbalanced-learn = "^0.14.0"
+fastapi = {extras = ["standard"], version = "^0.120.0"}
+uvicorn = {extras = ["standard"], version = "^0.38.0"}
+python-multipart = "0.0.6"
+azure-storage-blob = "^12.27.0"
+PyYAML = "^6.0.3"
+opencensus-ext-azure = "^1.1.15"
+opencensus-ext-logging = "^0.1.1"
+psycopg2-binary = "^2.9.11"
+sqlalchemy = "^2.0.44"
+alembic = "^1.17.0"
+mlflow = "^3.5.1"
+optuna = "^4.5.0"
+optuna-integration = {extras = ["mlflow"], version = "^4.5.0"}
+python-dotenv = "^1.1.1"
+pydantic = "^2.12.3"
+great-expectations = "^1.8.0"
+requests = "^2.32.5"
+httpx = "^0.28.1"
+fastapi-users = {extras = ["sqlalchemy"], version = "^10.0.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+requests-mock = "^1.11.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

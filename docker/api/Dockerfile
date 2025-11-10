@@ -1,54 +1,57 @@
+# Stage 1: Build the application
+FROM python:3.11-slim as builder
+
+# Install poetry
+RUN pip install poetry
+
+# Set working directory
+WORKDIR /app
+
+# Copy only the necessary files to install dependencies
+COPY pyproject.toml poetry.lock* ./
+
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi
+
+# Stage 2: Create the final image
 FROM python:3.9-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including PostgreSQL client and curl for health checks
+# Create a non-root user
+RUN useradd --create-home appuser
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
     curl \
-    git \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-#COPY setup.py .
+# Copy the installed dependencies from the builder stage
+COPY --from=builder /app/.venv /.venv
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-#RUN pip install -e .
-
-# Install additional Azure packages
-RUN pip install --no-cache-dir \
-    azure-storage-blob \
-    azure-identity \
-    opencensus-ext-azure \
-    opencensus-ext-logging
+# Set the PATH to include the virtual environment
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy project files
 COPY src/ ./src/
 COPY config/ ./config/
 COPY models/ ./models/
 COPY data/ ./data/
-COPY artifacts/ ./artifacts/
 
-# Create necessary directories
-RUN mkdir -p \
-    logs \
-    models \
-    artifacts \
-    data/processed \
-    data/raw \
-    data/ingestion \
-    src/api/cache \
-    src/api/utils/logs
+# Create necessary directories and set permissions
+RUN mkdir -p logs \
+    && chown -R appuser:appuser /app
+
+# Switch to the non-root user
+USER appuser
 
 # Expose API port
 EXPOSE 8000
 
-# Health check (fixed - uses wget instead of curl)
+# Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 

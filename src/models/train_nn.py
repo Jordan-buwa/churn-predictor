@@ -9,7 +9,7 @@ from src.models.network.neural_net import ChurnNN
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report
 from mlflow.models import infer_signature
-from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
 from matplotlib import pyplot as plt
 
 from datetime import datetime
@@ -36,7 +36,7 @@ load_dotenv()
 
 MODEL_DIR = os.getenv("MODEL_DIR", "models/")
 os.makedirs(MODEL_DIR, exist_ok=True)
-#os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
+os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
 
 config_path = "config/config_train_nn.yaml"
 with open(config_path, "r") as f:
@@ -64,7 +64,7 @@ class NeuralNetworkTrainer():
         self.dropout_rate = None
         self.best_params = None
         self.dvc_hash = None
-        self.smote = SMOTE(random_state=self.random_state)
+        self.smote = SMOTETomek(random_state=self.random_state)
         self.skf = StratifiedKFold(n_splits=self.num_splits_cv,
                                     shuffle=True, 
                                     random_state=self.random_state)
@@ -122,11 +122,12 @@ class NeuralNetworkTrainer():
         mlflow.set_tracking_uri(mlflow_uri)
         mlflow.set_experiment("Neuralnet_Churn_Experiment")
         self.logger.info(f"MLflow tracking URI: {mlflow_uri}")
-        with mlflow.start_run():
+        # Use nested run to avoid conflicts with parent MLflow run
+        with mlflow.start_run(nested=True):
             script_name = os.path.basename(__file__) if "__file__" in globals() else "notebook"
             mlflow.set_tag("script_version", script_name)
-            mlflow.log_param("num_samples", X.shape[0])
-            mlflow.log_param("num_features", X.shape[1])
+            mlflow.log_param("num_samples", self.X.shape[0])
+            mlflow.log_param("num_features", self.X.shape[1])
 
             # Log hyperparameters
             mlflow.log_params(self.best_params)
@@ -135,9 +136,9 @@ class NeuralNetworkTrainer():
             y_true_global = []
             y_pred_global = []
             self.logger.info("Training final model with cross-validation...")
-            for fold, (train_idx, test_idx) in enumerate(self.skf.split(X, y)):
-                X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
-                X_test, y_test = X.iloc[test_idx], y.iloc[test_idx]
+            for fold, (train_idx, test_idx) in enumerate(self.skf.split(self.X, self.y)):
+                X_train, y_train = self.X.iloc[train_idx], self.y.iloc[train_idx]
+                X_test, y_test = self.X.iloc[test_idx], self.y.iloc[test_idx]
                 X_train_res, y_train_res = self.smote.fit_resample(X_train, y_train)
 
                 X_train_tensor = torch.tensor(X_train_res.values, dtype=torch.float32)
@@ -148,18 +149,18 @@ class NeuralNetworkTrainer():
                 train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
-                self.model = ChurnNN(input_size=X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
+                self.model = ChurnNN(input_size=self.X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
 
                 self.model, _ = self.train_model(train_loader)
                 disp, metrics = self.evaluate_model(X_test_tensor, y_test_tensor)
                 # Plot confusion matrix
-                _, ax = plt.subplots(figsize=(6, 6))
-                disp.plot(ax=ax)
-                plt.savefig("images/confusion_matrix.png")
-                mlflow.log_artifact("images/confusion_matrix.png")
+                if fold+1 == self.num_splits_cv:
+                    _, ax = plt.subplots(figsize=(6, 6))
+                    disp.plot(ax=ax)
+                    plt.savefig("images/confusion_matrix.png")
+                    mlflow.log_artifact("images/confusion_matrix.png")
                 # Predict probabilities and determine best threshold
-                self.logger.info(f"Shape of X_test: {X_test.shape}\nShape of model output: {self.model.predict_proba(X_test).shape}")
-                y_probs = self.model.predict_proba(X_test)[:, 1]
+                y_probs = self.model.predict_proba(X_test).flatten()
                 best_threshold, best_f1 = self.get_prediction_threshold(y_test, y_probs)
                 y_pred = (y_probs >= best_threshold).astype(int)
 
@@ -211,15 +212,33 @@ class NeuralNetworkTrainer():
                 y_true_global, y_pred_global, average="binary")
             self.logger.info(f"Global F1 across all folds: {global_f1:.4f}")
             mlflow.log_metric("global_f1", global_f1)
-            y_probs_full = self.model.predict_proba(X)[:, 1]
-            best_threshold, best_f1 = self.get_prediction_threshold(y, y_probs_full)
+            y_probs_full = self.model.predict_proba(self.X).flatten()
+            best_threshold, best_f1 = self.get_prediction_threshold(self.y, y_probs_full)
             y_pred_full = (y_probs_full >= best_threshold).astype(int)
 
-            acc = accuracy_score(y, y_pred_full)
-            roc = roc_auc_score(y, y_probs_full)
+            acc = accuracy_score(self.y, y_pred_full)
+            roc = roc_auc_score(self.y, y_probs_full)
             self.logger.info(
                 f"Final model: Accuracy={acc:.4f}, F1={best_f1:.4f}, ROC-AUC={roc:.4f}")
-            self.logger.info("\n" + classification_report(y, y_pred_full))
+            self.logger.info("\n" + classification_report(self.y, y_pred_full))
+            # Persist metrics for metadata saving
+            try:
+                self.final_metrics = {
+                    "cv_avg": {k: float(np.mean(v)) for k, v in metrics_all.items()},
+                    "global_f1": float(global_f1),
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold)
+                }
+            except Exception:
+                self.final_metrics = {
+                    "global_f1": float(global_f1),
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold)
+                }
         return self
         
     # Save model using centralized store (full torch model)
@@ -247,7 +266,7 @@ class NeuralNetworkTrainer():
             saved = save_model_artifacts(
                 model=self.model,
                 model_type="neural_net",
-                metrics=None,
+                metrics=getattr(self, "final_metrics", None),
                 schema=schema,
                 version_hint=version_hint,
             )
@@ -303,6 +322,7 @@ if __name__ == "__main__":
     y = df_processed[target_col]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     trainer = NeuralNetworkTrainer(X, y, config, device)
-    trainer.train_and_tune().save_model()
+    trainer.train_and_tune()
+    trainer.save_model()
     trainer.register_model() 
     trainer.save_logs_on_local()

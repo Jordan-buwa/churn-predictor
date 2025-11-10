@@ -1,0 +1,24 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python src/data_pipeline/ingest.py
+    deps:
+    - path: config/config_ingest.yaml
+      hash: md5
+      md5: 8c1d743d900ffff8573791439c76851c
+      size: 1234
+    - path: src/data_pipeline/ingest.py
+      hash: md5
+      md5: f3a0217861fa3d8aa7880034ab9821b1
+      size: 8323
+      isexec: true
+    outs:
+    - path: data/backup/ingested.csv
+      hash: md5
+      md5: 156acd1b912ec039a7232d5372070091
+      size: 21761707
+    - path: data/snapshots
+      hash: md5
+      md5: 02789122f012a7c95a20fd24f1a80580.dir
+      size: 21761707
+      nfiles: 1

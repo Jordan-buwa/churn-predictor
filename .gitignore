@@ -16,13 +16,7 @@ mlruns/
 *.joblib
 dvc_refresh.sh
 try.py
-.pytest_cache/
-/models
-tests/unit/
-tests/integration/
-!tests/__init__.py
-tests/
-*test*.py
+ .pytest_cache/
 test.sh
 note.ipynb
 tree.sh
@@ -33,3 +27,6 @@ test.sh
 node_modules/
 docker-compose.azure.yml
 .vscode
+/mlartifacts
+models/*/versions/
+models/*/schemas/
