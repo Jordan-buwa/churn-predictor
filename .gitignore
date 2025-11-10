@@ -33,3 +33,5 @@ node_modules/
 docker-compose.azure.yml
 .vscode
 /mlartifacts
+models/*/versions/
+models/*/schemas/

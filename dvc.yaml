@@ -31,7 +31,6 @@ stages:
     outs:
       - models/xgboost/versions
       - models/xgboost/schemas
-      - models/xgboost/metadata.json
     metrics:
       - models/xgboost/metadata.json
 
@@ -45,7 +44,6 @@ stages:
     outs:
       - models/neural_net/versions
       - models/neural_net/schemas
-      - models/neural_net/metadata.json
     metrics:
       - models/neural_net/metadata.json
 
@@ -59,6 +57,5 @@ stages:
     outs:
       - models/random_forest/versions
       - models/random_forest/schemas
-      - models/random_forest/metadata.json
     metrics:
       - models/random_forest/metadata.json
