@@ -12,7 +12,12 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
-from src.api.routers import predict, train, validate, metrics, ingest
+from src.api.routers import predict, train, validate, metrics, ingest, auth
+from src.api.db import Base, engine
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
 from src.api.utils.config import get_allowed_model_types 
 
@@ -108,6 +113,7 @@ app.include_router(train.router,   tags=["training"])
 app.include_router(validate.router,tags=["Data Validation"])
 app.include_router(metrics.router, tags=["metrics"])
 app.include_router(ingest.router,  tags=["Data ingestion"])
+app.include_router(auth.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def ui_root(request: Request):
