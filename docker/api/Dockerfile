@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM python:3.9-slim as builder
+FROM python:3.11-slim as builder
 
 # Install poetry
 RUN pip install poetry

@@ -5,7 +5,7 @@ description = "A churn prediction API"
 authors = ["Jordan Buwa - Aderonke Ajefolakemi - Wycliffe Nzomo (jmbouobda, aajefolakemi, wnzomo)@aimsammi.org"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 dvc = {extras = ["azure"], version = "^2.10.2"}
 pandas = "^1.4.2"
 numpy = "^1.22.3"
