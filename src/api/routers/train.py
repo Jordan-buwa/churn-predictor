@@ -14,6 +14,7 @@ from pathlib import Path
 from src.api.utils.config import APIConfig, get_allowed_model_types
 from src.api.utils.response_models import TrainingResponse, JobStatusResponse
 from src.api.utils.error_handlers import TrainingError, handle_training_error
+from src.api.routers.auth import current_active_user
 
 load_dotenv()
 
@@ -23,7 +24,7 @@ sys.path.append(str(REPO_ROOT))
 os.environ["REPO_ROOT"] = str(REPO_ROOT)
 os.environ["PYTHONPATH"] = str(REPO_ROOT)
 
-router = APIRouter(prefix="/train")
+router = APIRouter(prefix="/train", dependencies=[Depends(current_active_user)])
 logger = logging.getLogger(__name__)
 
 # Initialize configuration

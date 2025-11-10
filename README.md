@@ -155,6 +155,31 @@ Have a look at the endpoints here:
 4. [Train requests](documentations/train_api.md)
 5. [Examples](documentations/examples.md)
 
+## Security and Authentication
+
+The API supports JWT-based authentication via FastAPI Users.
+
+- Set `AUTH_SECRET` in your environment (or `.env`) to sign tokens.
+- Authentication endpoints are available under `/auth` and `/auth/jwt`.
+
+Protected routers:
+- `/train/*` requires an authenticated, active user.
+- `/ingest/*` requires an authenticated, active user.
+
+Example flow:
+- Register: `POST /auth/register` with `email` and `password`.
+- Login: `POST /auth/jwt/login` to obtain an access token.
+- Use the token: Set header `Authorization: Bearer <token>` on protected endpoints.
+
+## CI/CD
+
+CI includes `API CI` workflow (`.github/workflows/api-ci.yml`) that:
+- Sets up Python 3.9 and installs dependencies from `requirements.txt`.
+- Runs tests via `pytest`.
+- Builds the API Docker image using `docker/api/Dockerfile`.
+
+Extend this to push images and deploy with registry credentials and target environment.
+
 ## Authors
 - [Jordan Buwa](https://github.com/Jordan-buwa)
 - [Aderonke Ajefolakemi](https://github.com/Ronkecrown)

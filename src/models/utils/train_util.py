@@ -27,4 +27,5 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=20, device
         avg_loss = running_loss / len(train_loader)
         if epoch+1 % 5 == 0 or epoch == num_epochs - 1:
             print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_loss:.4f}")
+            logging.info(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_loss:.4f}")
     return model, avg_loss

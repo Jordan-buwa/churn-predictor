@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from src.api.utils.database import get_db_connection, save_customer_data, save_batch_customer_data, generate_batch_id
 from src.api.utils.customer_data import CustomerData, BatchCustomerData
 from fastapi.responses import PlainTextResponse
@@ -9,8 +9,9 @@ import pandas as pd
 import logging
 from datetime import datetime
 import io
+from src.api.routers.auth import current_active_user
 
-router = APIRouter(prefix="/ingest")
+router = APIRouter(prefix="/ingest", dependencies=[Depends(current_active_user)])
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename='src/api/utils/logs/ingest.log',
