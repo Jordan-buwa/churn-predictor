@@ -291,7 +291,7 @@ class RealisticDataSimulator:
         # Identifying feature types
         self.feature_types = self._identify_feature_types(self.representative_sample, target)
         
-        # Store target distribution
+        # Storing target distribution
         self.target_distribution = self.representative_sample[target].value_counts(normalize=True)
         
         # Storing original data for category preservation
@@ -479,7 +479,7 @@ class DriftedDataSimulator:
         self.logger.info(f"Drift configuration set: {self.drift_config}")
     
     def load_and_clean_data(self, data_path: str = "data/raw/telco_churn.csv") -> pd.DataFrame:
-        """Load and clean the dataset using your provided cleaning pipeline."""
+        """Loading and clean the dataset using your provided cleaning pipeline."""
         self.logger.info(f"Loading data from: {data_path}")
 
         # Checking if file exists
@@ -554,12 +554,12 @@ def main():
         )
         
         realistic_data = realistic_simulator.simulate(n_samples=1000)
-        print(f"✓ Generated realistic data: {realistic_data.shape}")
+        print(f"Generated realistic data: {realistic_data.shape}")
         print(f"Target distribution:\n{realistic_data['churn'].value_counts()}")
         
         # Getting simulation report
         report = realistic_simulator.get_simulation_report()
-        print(f"✓ Simulation completed in {time.time() - start_time:.2f} seconds")
+        print(f"Simulation completed in {time.time() - start_time:.2f} seconds")
         
         # Drifted Data Simulation  
         print("\n Drifted Data Simulation")
@@ -576,8 +576,8 @@ def main():
         
         # Saving sample of generated data
         print("\n Saving Results ")
-        realistic_data.head(100).to_csv("data/processed/simulated_realistic_sample.csv", index=False)
-        print("Saved realistic data sample to: data/processed/simulated_realistic_sample.csv")
+        realistic_data.head(100).to_csv("data/raw/simulated_realistic_sample.csv", index=False)
+        print("Saved realistic data sample to: data/raw/simulated_realistic_sample.csv")
         
         print(f"\n Data Simulation Completed Successfully")
         
