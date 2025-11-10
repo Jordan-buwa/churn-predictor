@@ -221,6 +221,24 @@ class NeuralNetworkTrainer():
             self.logger.info(
                 f"Final model: Accuracy={acc:.4f}, F1={best_f1:.4f}, ROC-AUC={roc:.4f}")
             self.logger.info("\n" + classification_report(self.y, y_pred_full))
+            # Persist metrics for metadata saving
+            try:
+                self.final_metrics = {
+                    "cv_avg": {k: float(np.mean(v)) for k, v in metrics_all.items()},
+                    "global_f1": float(global_f1),
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold)
+                }
+            except Exception:
+                self.final_metrics = {
+                    "global_f1": float(global_f1),
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold)
+                }
         return self
         
     # Save model using centralized store (full torch model)
@@ -248,7 +266,7 @@ class NeuralNetworkTrainer():
             saved = save_model_artifacts(
                 model=self.model,
                 model_type="neural_net",
-                metrics=None,
+                metrics=getattr(self, "final_metrics", None),
                 schema=schema,
                 version_hint=version_hint,
             )

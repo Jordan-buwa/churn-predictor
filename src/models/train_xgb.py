@@ -316,11 +316,30 @@ class XGBoostTrainer:
             try:
                 with open(metadata_path, 'w') as f:
                     json.dump(feature_metadata, f, indent=2)
-                mlflow.log_artifact(metadata_path, name="feature_metadata")
+                mlflow.log_artifact(metadata_path, artifact_path="feature_metadata")
                 self.logger.info(
                     f"Feature metadata saved successfully at {metadata_path}")
             except Exception as e:
                 self.logger.error(f"Failed to save feature metadata: {str(e)}")
+
+            # Persist metrics for metadata saving
+            try:
+                self.final_metrics = {
+                    "cv_folds": fold_metrics,
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold),
+                    "best_params": best_params,
+                    "best_global_f1": float(best_global_f1)
+                }
+            except Exception:
+                self.final_metrics = {
+                    "final_accuracy": float(acc),
+                    "final_f1": float(best_f1),
+                    "final_roc_auc": float(roc),
+                    "final_threshold": float(best_threshold)
+                }
 
             return final_model, fold_metrics
 
@@ -359,7 +378,7 @@ class XGBoostTrainer:
             saved = save_model_artifacts(
                 model=model,
                 model_type="xgboost",
-                metrics=None,
+                metrics=getattr(self, "final_metrics", None),
                 schema=schema,
                 version_hint=version_hint,
             )
