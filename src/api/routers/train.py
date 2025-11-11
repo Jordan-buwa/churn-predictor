@@ -54,9 +54,10 @@ def validate_training_script(script_path: str) -> str:
     else:
         candidate = path
     if not candidate.exists():
-        raise TrainingError(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            message=f"Training script not found: {candidate}"
+        # Use HTTPException to match test expectations
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Training script not found: {candidate}"
         )
     return str(candidate)
 
@@ -162,9 +163,10 @@ def get_script_path(model_type: str) -> str:
     }
     
     if model_type not in allowed_types:
-        raise TrainingError(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            message=f"Unsupported model type: {model_type}. Supported types: {allowed_types}"
+        # Use HTTPException for invalid model types
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported model type: {model_type}. Supported types: {allowed_types}"
         )
     
     return script_map[model_type]
@@ -212,7 +214,11 @@ async def train_model(
             }
         )
         
+    except HTTPException:
+        # Bubble up HTTP errors directly
+        raise
     except TrainingError:
+        # Preserve TrainingError behavior
         raise
     except Exception as e:
         logger.error(f"Error starting training job: {str(e)}")
@@ -308,9 +314,10 @@ async def get_job_status(job_id: str):
         job_id: The ID of the training job to check
     """
     if job_id not in training_jobs:
-        raise TrainingError(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            message="Job ID not found"
+        # Return 404 as HTTPException to satisfy endpoint tests
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job ID not found"
         )
     
     job_info = training_jobs[job_id]
@@ -363,17 +370,17 @@ async def cancel_job(job_id: str):
     you would need to implement process management.
     """
     if job_id not in training_jobs:
-        raise TrainingError(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            message="Job ID not found"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job ID not found"
         )
     
     job = training_jobs[job_id]
     
     if job["status"] in ["completed", "failed"]:
-        raise TrainingError(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            message=f"Cannot cancel job with status: {job['status']}"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel job with status: {job['status']}"
         )
     
     # Update status to cancelled

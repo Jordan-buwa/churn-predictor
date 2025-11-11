@@ -119,12 +119,17 @@ class PreprocessingError(APIError):
 
 class TrainingError(APIError):
     """Model training error."""
-    def __init__(self, message: str, detail: Optional[str] = None):
+    def __init__(
+        self,
+        message: str,
+        detail: Optional[str] = None,
+        status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
+    ):
         super().__init__(
             message=message,
             error_code=ErrorCode.TRAINING_FAILED,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=detail
+            status_code=status_code,
+            detail=detail,
         )
 
 class PredictionError(APIError):
