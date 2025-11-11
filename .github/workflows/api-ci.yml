@@ -81,16 +81,13 @@ jobs:
       - name: Run training smoke test
         if: github.ref == 'refs/heads/main'
         env:
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}
-          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE2_RESOURCE_GROUP }}
-          AZURE_ML_WORKSPACE_NAME: ${{ secrets.AZURE2_ML_WORKSPACE_NAME }}
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         run: |
           echo "Testing training service configuration..."
           docker run --rm \
-            -e AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
-            -e AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP \
-            -e AZURE_ML_WORKSPACE_NAME=$AZURE_ML_WORKSPACE_NAME \
+            -e AZURE_SUBSCRIPTION_ID=$AZURE2_SUBSCRIPTION_ID \
+            -e AZURE_RESOURCE_GROUP=$AZURE2_RESOURCE_GROUP \
+            -e AZURE_ML_WORKSPACE_NAME=$AZURE2_ML_WORKSPACE_NAME \
             -e MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI \
             -e ENVIRONMENT=test \
             ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} python -c "import sys;sys.path.append('/app');from src.utils.mlflow_utils import setup_mlflow;setup_mlflow();print('MLflow configuration successful')" 
@@ -131,6 +128,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Azure  # ← CRITICAL: ADD THIS!
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Build and push Docker images
         run: |
           docker build -f docker/api/Dockerfile -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} .
@@ -150,6 +152,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }}
         env:
           ENVIRONMENT: production
+          # Account 1 - Deployment target
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
           POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
@@ -158,10 +161,16 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-
-          # Account 2 - Azure ML workspace
+          
+          # Account 2 - Azure ML
           AZURE_ML_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}
           AZURE_ML_RESOURCE_GROUP: ${{ secrets.AZURE2_RESOURCE_GROUP }}
           AZURE_ML_WORKSPACE_NAME: ${{ secrets.AZURE2_ML_WORKSPACE_NAME }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          
           LOG_LEVEL: INFO
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Deployment completed!"
+          echo "📦 Images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}"
