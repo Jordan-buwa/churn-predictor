@@ -2,8 +2,6 @@ from fastapi import HTTPException, APIRouter, Body, status
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from src.api.utils.customer_data import CustomerData
 from src.api.utils.database import get_db_connection
 from src.data_pipeline.preprocess import ProductionPreprocessor
 from typing import Dict, Any

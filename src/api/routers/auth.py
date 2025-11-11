@@ -64,8 +64,17 @@ router.include_router(
     tags=["auth"],
 )
 
+class UserRead(fau_schemas.BaseUser[uuid.UUID]):
+    pass
+
+class UserCreate(fau_schemas.BaseUserCreate):
+    pass
+
+class UserUpdate(fau_schemas.BaseUserUpdate):
+    pass
+
 router.include_router(
-    fastapi_users.get_register_router(fau_schemas.UserRead, fau_schemas.UserCreate),
+    fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"],
 )
@@ -77,13 +86,13 @@ router.include_router(
 )
 
 router.include_router(
-    fastapi_users.get_verify_router(),
+    fastapi_users.get_verify_router(UserRead),
     prefix="/auth",
     tags=["auth"],
 )
 
 router.include_router(
-    fastapi_users.get_users_router(fau_schemas.UserRead, fau_schemas.UserUpdate),
+    fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/users",
     tags=["users"],
 )

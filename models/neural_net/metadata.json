@@ -1,7 +1,7 @@
 {
   "model_type": "neural_net",
-  "latest_version": "neural_net_churn_v20251110_143533",
-  "latest_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251110_143533.pth",
+  "latest_version": "neural_net_churn_v20251111_124513",
+  "latest_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251111_124513.pth",
   "versions": [
     {
       "version": "neural_net_churn_v20251110_143533",
@@ -23,6 +23,48 @@
         "final_threshold": 0.47000000000000003
       },
       "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/schemas/neural_net_churn_v20251110_143533_schema.json"
+    },
+    {
+      "version": "neural_net_churn_v20251111_100128",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251111_100128.pth",
+      "created_at": "2025-11-11T10:01:28.452940",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.6236938119312642,
+          "F1": 0.46331548777429,
+          "Recall": 0.6563155355917744,
+          "Precision": 0.35826395865597005,
+          "Accuracy": 0.5591231028851534
+        },
+        "global_f1": 0.47566743821613927,
+        "final_accuracy": 0.5071572339437274,
+        "final_f1": 0.47915272137682774,
+        "final_roc_auc": 0.6324332488047145,
+        "final_threshold": 0.46
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/schemas/neural_net_churn_v20251111_100128_schema.json"
+    },
+    {
+      "version": "neural_net_churn_v20251111_124513",
+      "path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/versions/neural_net_churn_v20251111_124513.pth",
+      "created_at": "2025-11-11T12:45:13.901807",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.608413279638452,
+          "F1": 0.4487106768184962,
+          "Recall": 0.6429782203341637,
+          "Precision": 0.35280617165877126,
+          "Accuracy": 0.5493258562024872
+        },
+        "global_f1": 0.4709964609599646,
+        "final_accuracy": 0.45006826466986644,
+        "final_f1": 0.4726477614760626,
+        "final_roc_auc": 0.6130764602523449,
+        "final_threshold": 0.44
+      },
+      "schema_path": "/Users/jordanbuwa/Documents/jordan/Project-repo/models/neural_net/schemas/neural_net_churn_v20251111_124513_schema.json"
     }
   ]
 }

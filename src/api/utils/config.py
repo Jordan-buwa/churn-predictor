@@ -161,4 +161,4 @@ def get_model_path(model_type: str) -> str:
 
 def get_allowed_model_types() -> list:
     """Get list of allowed model types."""
-    return ModelType.get_all_types()
+    return ModelType.get_all_types() 
