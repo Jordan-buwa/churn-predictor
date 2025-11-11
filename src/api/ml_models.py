@@ -1,4 +1,5 @@
 import pickle
+import joblib
 import torch
 import logging
 from pathlib import Path
@@ -30,21 +31,25 @@ def get_model_path(model_type: str) -> Path:
     path_str = config_get_model_path(normalized_type)
     return Path(path_str)
 
-def load_pickle_model(path: Path) -> Any:
-    """Load a pickle model with error handling"""
+def load_serialized_model(path: Path) -> Any:
+    """Load a serialized model (.joblib or .pkl) with error handling"""
     try:
         if not path.exists():
             raise ModelLoadError(f"Model file not found: {path}")
-        
-        with open(path, "rb") as f:
-            model = pickle.load(f)
-        
-        logger.info(f"Successfully loaded pickle model from {path}")
+
+        if path.suffix == ".joblib":
+            model = joblib.load(path)
+            logger.info(f"Successfully loaded joblib model from {path}")
+        else:
+            with open(path, "rb") as f:
+                model = pickle.load(f)
+            logger.info(f"Successfully loaded pickle model from {path}")
+
         return model
-    
+
     except Exception as e:
-        logger.error(f"Error loading pickle model from {path}: {str(e)}")
-        raise ModelLoadError(f"Failed to load pickle model: {str(e)}")
+        logger.error(f"Error loading serialized model from {path}: {str(e)}")
+        raise ModelLoadError(f"Failed to load serialized model: {str(e)}")
 
 def load_torch_model(path: Path, model_class=None) -> torch.nn.Module:
     """Load a PyTorch model with error handling"""
@@ -52,14 +57,15 @@ def load_torch_model(path: Path, model_class=None) -> torch.nn.Module:
         if not path.exists():
             raise ModelLoadError(f"Model file not found: {path}")
         
-        if model_class is not None:
+        if model_class is not None and model_class.suffix == ".pth":
             model_class.load_state_dict(
-                torch.load(path, map_location=torch.device('cpu'))
+                torch.load(path, map_location=torch.device('cpu'), weights_only=False)
             )
             model_class.eval()
             model = model_class
         else:
-            model = torch.load(path, map_location=torch.device('cpu'))
+            assert path.suffix == ".pth"
+            model = torch.load(path, map_location=torch.device('cpu'), weights_only=False)
             model.eval()
         
         logger.info(f"Successfully loaded PyTorch model from {path}")
@@ -86,7 +92,7 @@ def load_single_model(model_type: str, force_reload: bool = False) -> Optional[A
         if normalized_type == ModelType.NEURAL_NET:
             model = load_torch_model(path)
         else:
-            model = load_pickle_model(path)
+            model = load_serialized_model(path) 
         
         # Store model and metadata
         ml_models[normalized_type] = model
