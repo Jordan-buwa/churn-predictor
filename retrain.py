@@ -17,6 +17,7 @@ import pandas as pd
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
+from src.utils.mlflow_utils import setup_mlflow, mlflow_config
 from src.data_pipeline.pipeline_data import fetch_preprocessed
 from src.models.train_nn import NeuralNetworkTrainer
 from src.models.train_xgb import XGBoostTrainer, setup_logger as xgb_logger
@@ -32,6 +33,10 @@ class ModelRetrainer:
     def __init__(self, config_path: str = "config/config_retrain.yaml"):
         self.config = self._load_config(config_path)
         self.logger = self._setup_logger()
+
+        # Setup MLflow for retraining
+        setup_mlflow()
+        
         self.models_to_retrain = self.config.get("models_to_retrain", ["xgboost", "random_forest", "neural_net"])
         self.performance_threshold = self.config.get("performance_threshold", 0.7)
     

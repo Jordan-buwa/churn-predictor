@@ -18,6 +18,7 @@ dvc_refresh.sh
 try.py
  .pytest_cache/
 test.sh
+.env.example
 note.ipynb
 tree.sh
 src/data_pipeline/preprocessing_artifacts*

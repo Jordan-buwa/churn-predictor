@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 from dotenv import load_dotenv
-from .models_types import ModelType, validate_model_type, normalize_model_type
+from .models_types import ModelType
 
 load_dotenv()
 
@@ -21,6 +21,15 @@ class APIConfig:
         self.config_dir = self.repo_root / "config"
         self._config_cache = {}
         #self._validate_paths()
+        
+        # Azure ML configuration
+        self.azure_ml_workspace = os.getenv("AZURE_ML_WORKSPACE_NAME")
+        self.azure_ml_enabled = bool(self.azure_ml_workspace)
+    
+    @property
+    def use_azure_ml(self) -> bool:
+        """Check if Azure ML should be used"""
+        return self.azure_ml_enabled and os.getenv("ENVIRONMENT") == "production"
     
     def _validate_paths(self):
         """Validate that all required paths exist"""

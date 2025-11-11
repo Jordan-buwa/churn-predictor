@@ -50,3 +50,9 @@ pytest
 pytest-asyncio
 requests-mock
 pytest-cov
+setuptools
+
+azure-ai-ml 
+azure-identity 
+azure-mgmt-resource 
+azure-mgmt-machinelearningservices

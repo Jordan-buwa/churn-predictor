@@ -4,29 +4,30 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    gcc \
+    build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Azure dependencies for storage
-RUN pip install azure-storage-blob azure-identity
+# Install Azure ML dependencies
+RUN pip install azure-ai-ml azure-identity azure-storage-blob
 
 # Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
 
 # Create directories
-RUN mkdir -p /app/data/raw /app/data/processed /app/logs
+RUN mkdir -p /app/models /app/artifacts /app/logs /app/mlruns
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV DATA_DIR=/app/data
-ENV LOG_DIR=/app/logs
+ENV MODEL_DIR=/app/models
+ENV ARTIFACT_DIR=/app/artifacts
+ENV LOG_LEVEL=INFO
 ENV ENVIRONMENT=production
 
-# Entry point for data pipeline
-ENTRYPOINT ["python", "src/data_pipeline/pipeline_data.py"]
-CMD ["--help"]
+# Run training with Azure ML integration
+CMD ["python", "src/models/train_xgb.py"]

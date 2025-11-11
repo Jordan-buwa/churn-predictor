@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
+from azure.identity import DefaultAzureCredential
 from .utils.models_types import ModelType, validate_model_type, normalize_model_type
 from .utils.config import get_model_path as config_get_model_path
 
@@ -22,14 +23,58 @@ class ModelLoadError(Exception):
 from pathlib import Path
 from typing import Optional
 
-def get_model_path(model_type: str) -> Path:
-    """Return latest model path using centralized config and structured metadata."""
+def get_local_model_path(model_type: str) -> Path:
+    """Your existing local model path logic"""
     normalized_type = normalize_model_type(model_type)
+    
     if not validate_model_type(normalized_type):
         raise ValueError(f"Unknown model type: {model_type}. Supported: {ModelType.get_all_types()}")
-    # Use API config's standardized retrieval (metadata-aware)
-    path_str = config_get_model_path(normalized_type)
-    return Path(path_str)
+    
+    models_dir = Path("models/")
+    if not models_dir.exists() or not models_dir.is_dir():
+        raise FileNotFoundError(f"Models directory not found: {models_dir}")
+
+    identifiers = {
+        ModelType.XGBOOST: {"xgboost", "xgb"},
+        ModelType.RANDOM_FOREST: {"random_forest", "random-forest", "rf", ".joblib"},
+        ModelType.NEURAL_NET: {"neural", "nn", ".pth", ".h5", ".pt"},
+    }
+
+    patterns = identifiers[normalized_type]
+    
+    candidates: list[tuple[float, Path]] = []
+    
+    for file_path in models_dir.iterdir():
+        if not file_path.is_file():
+            continue
+        
+        name_lower = file_path.name.lower()
+        suffix_lower = file_path.suffix.lower()
+        
+        matches = any(
+            pat.lstrip(".") in name_lower or
+            (pat.startswith(".") and pat == suffix_lower)
+            for pat in patterns
+        )
+        
+        if matches:
+            mtime = file_path.stat().st_mtime
+            candidates.append((mtime, file_path))
+    
+    if not candidates:
+        raise FileNotFoundError(f"No model file found for type '{model_type}' in {models_dir}")
+    
+    latest_path = sorted(candidates, key=lambda x: x[0], reverse=True)[0][1]
+    return latest_path
+
+def get_model_path(model_type: str) -> Path:
+    """Return latest model path using centralized config and structured metadata."""
+    if mlflow_config.is_azure_ml:
+        try:
+            return download_model_from_azure_ml(model_type)
+        except Exception as e:
+            logger.warning(f"Failed to load from Azure ML, falling back to local: {str(e)}")
+    return get_local_model_path(model_type)
 
 def load_serialized_model(path: Path) -> Any:
     """Load a serialized model (.joblib or .pkl) with error handling"""
@@ -162,6 +207,34 @@ def reload_model(model_type: str) -> bool:
         logger.error(f"Error reloading model {model_type}: {str(e)}")
         return False
 
+def download_model_from_azure_ml(model_type: str) -> Path:
+    """Download model from Azure ML Model Registry"""
+    try:
+        model_name_map = {
+            "xgboost": "churn-xgboost-model",
+            "random_forest": "churn-randomforest-model", 
+            "neural_net": "churn-neuralnet-model"
+        }
+        
+        model_name = model_name_map.get(model_type)
+        if not model_name:
+            raise ModelLoadError(f"No Azure ML model mapping for {model_type}")
+        
+        # Download model
+        model_uri = f"models:/{model_name}/latest"
+        local_path = Path("models") / model_type
+        local_path.mkdir(parents=True, exist_ok=True)
+        
+        downloaded_path = mlflow.artifacts.download_artifacts(
+            artifact_uri=model_uri, 
+            dst_path=str(local_path)
+        )
+        
+        logger.info(f"Downloaded model from Azure ML: {downloaded_path}")
+        return Path(downloaded_path)
+        
+    except Exception as e:
+        raise ModelLoadError(f"Azure ML download failed: {str(e)}")
 def get_model(model_type: str) -> Optional[Any]:
     """
     Get a loaded model by type

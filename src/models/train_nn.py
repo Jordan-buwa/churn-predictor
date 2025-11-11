@@ -69,6 +69,8 @@ class NeuralNetworkTrainer():
                                     shuffle=True, 
                                     random_state=self.random_state)
         self.criterion = torch.nn.BCELoss()
+        setup_mlflow()
+        self.experiment_name = mlflow_config.get_experiment_name("NeuralNet_Churn_Experiment")
 
     def create_fold_dataloaders(self):
         return create_fold_dataloaders(self.X, self.y, self.num_splits_cv, self.batch_size, self.random_state)
@@ -120,7 +122,7 @@ class NeuralNetworkTrainer():
         mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:8080")
 
         mlflow.set_tracking_uri(mlflow_uri)
-        mlflow.set_experiment("Neuralnet_Churn_Experiment")
+        mlflow.set_experiment(self.experiment_name)
         self.logger.info(f"MLflow tracking URI: {mlflow_uri}")
         # Use nested run to avoid conflicts with parent MLflow run
         with mlflow.start_run(nested=True):
@@ -239,6 +241,14 @@ class NeuralNetworkTrainer():
                     "final_roc_auc": float(roc),
                     "final_threshold": float(best_threshold)
                 }
+        if mlflow_config.is_azure_ml:
+            mlflow.pytorch.log_model(
+                self.model, 
+                "model",
+                registered_model_name="churn-neuralnet-model"
+            )
+        else:
+            mlflow.pytorch.log_model(self.model, "model")        
         return self
         
     # Save model using centralized store (full torch model)
