@@ -1,5 +1,4 @@
 version: "3.11"
-
 services:
   # TRAINING SERVICE
   train:
@@ -84,11 +83,13 @@ services:
   # DATABASE SERVICE
   db:
     image: postgres:15
-    container_name: mlflow-db
+    container_name: zen_vaughan
     environment:
-      POSTGRES_USER: mlflow_user
-      POSTGRES_PASSWORD: mlflow_pass
-      POSTGRES_DB: mlflow_db
+      - POSTGRES_HOST=jaw-postgresdb.postgres.database.azure.com
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB_NAME=postgres
+      - POSTGRES_DB_USER=jawpostgresdb
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
