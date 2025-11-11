@@ -291,7 +291,7 @@ class RealisticDataSimulator:
         # Identifying feature types
         self.feature_types = self._identify_feature_types(self.representative_sample, target)
         
-        # Store target distribution
+        # Storing target distribution
         self.target_distribution = self.representative_sample[target].value_counts(normalize=True)
         
         # Storing original data for category preservation
@@ -421,7 +421,7 @@ class DriftedDataSimulator:
     
     def __init__(self, random_state: int = 42, logger: Optional[logging.Logger] = None):
         """
-        Initialize the DriftedDataSimulator.
+        Initializing the DriftedDataSimulator.
         
         Parameters:
         - random_state: int, random seed for reproducibility
@@ -455,7 +455,7 @@ class DriftedDataSimulator:
                        shift_marginal_distributions: bool = True,
                        extreme_value_injection: bool = True):
         """
-        Configure the strength and type of data drift to inject.
+        Configuring the strength and type of data drift to inject.
         
         Parameters:
         - target_drift_strength: 0-1, how much to shift target distribution
@@ -479,7 +479,7 @@ class DriftedDataSimulator:
         self.logger.info(f"Drift configuration set: {self.drift_config}")
     
     def load_and_clean_data(self, data_path: str = "data/raw/telco_churn.csv") -> pd.DataFrame:
-        """Load and clean the dataset using your provided cleaning pipeline."""
+        """Loading and clean the dataset using your provided cleaning pipeline."""
         self.logger.info(f"Loading data from: {data_path}")
 
         # Checking if file exists
@@ -530,19 +530,21 @@ class DriftedDataSimulator:
 
         self.logger.info(f"Final cleaned data shape: {df.shape}")
         return df
+
+# The classes are automatically called when the script is run
 def main():
     """Main function to demonstrate data simulation."""
     import time
     
-    print("=== Starting Data Simulation ===")
+    print("Starting Data Simulation")
     
-    # Initialize simulators
+    # Initializing simulators
     realistic_simulator = RealisticDataSimulator(random_state=42)
     drifted_simulator = DriftedDataSimulator(random_state=42)
     
     try:
         # Realistic Data Simulation
-        print("\n--- Realistic Data Simulation ---")
+        print("\n Realistic Data Simulation")
         start_time = time.time()
         
         realistic_simulator.fit(
@@ -552,15 +554,15 @@ def main():
         )
         
         realistic_data = realistic_simulator.simulate(n_samples=1000)
-        print(f"✓ Generated realistic data: {realistic_data.shape}")
+        print(f"Generated realistic data: {realistic_data.shape}")
         print(f"Target distribution:\n{realistic_data['churn'].value_counts()}")
         
         # Getting simulation report
         report = realistic_simulator.get_simulation_report()
-        print(f"✓ Simulation completed in {time.time() - start_time:.2f} seconds")
+        print(f"Simulation completed in {time.time() - start_time:.2f} seconds")
         
         # Drifted Data Simulation  
-        print("\n--- Drifted Data Simulation ---")
+        print("\n Drifted Data Simulation")
         start_time = time.time()
         
         # Configuring drift
@@ -570,22 +572,18 @@ def main():
             categorical_drift_strength=0.5
         )
         
-        # Note: You'll need to implement the fit and simulate methods for DriftedDataSimulator
-        # drifted_data = drifted_simulator.simulate(n_samples=1000)
-        # print(f"Generated drifted data: {drifted_data.shape}")
-        
         print(f"Drift configuration completed in {time.time() - start_time:.2f} seconds")
         
         # Saving sample of generated data
-        print("\n--- Saving Results ---")
-        realistic_data.head(100).to_csv("data/processed/simulated_realistic_sample.csv", index=False)
-        print("Saved realistic data sample to: data/processed/simulated_realistic_sample.csv")
+        print("\n Saving Results ")
+        realistic_data.head(100).to_csv("data/raw/simulated_realistic_sample.csv", index=False)
+        print("Saved realistic data sample to: data/raw/simulated_realistic_sample.csv")
         
-        print(f"\n=== Data Simulation Completed Successfully ===")
+        print(f"\n Data Simulation Completed Successfully")
         
     except Exception as e:
         print(f"Error during simulation: {e}")
         raise
 
 if __name__ == "__main__":
-        main()
+    main()
