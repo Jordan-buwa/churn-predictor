@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 
 # Configuration for Account 1 (where we deploy)
@@ -9,10 +10,26 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
 }
 
+error() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1" >&2
+    exit 1
+}
+
+# Validate required environment variables
+validate_env() {
+    local required_vars=("POSTGRES_HOST" "POSTGRES_PASSWORD" "AZURE_STORAGE_CONNECTION_STRING" "AUTH_SECRET")
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            error "Missing required environment variable: $var"
+        fi
+    done
+    log "All required environment variables are set"
+}
+
 # Switch to Account 1 context
 switch_to_account1() {
     log "Switching to Account 1 (Main account)"
-    az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+    az account set --subscription "$AZURE_SUBSCRIPTION_ID" || error "Failed to switch to Account 1"
 }
 
 # Deploy to Account 1
@@ -46,15 +63,15 @@ deploy_to_account1() {
             POSTGRES_DB="$POSTGRES_DB_NAME" \
             POSTGRES_USER="$POSTGRES_DB_USER" \
             AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
-            # Azure ML from Account 2
             AZURE_ML_SUBSCRIPTION_ID="$AZURE2_SUBSCRIPTION_ID" \
             AZURE_ML_RESOURCE_GROUP="$AZURE2_RESOURCE_GROUP" \
             AZURE_ML_WORKSPACE_NAME="$AZURE2_ML_WORKSPACE_NAME" \
             AUTH_SECRET="$AUTH_SECRET" \
             ENVIRONMENT="$ENVIRONMENT" \
+            LOG_LEVEL="$LOG_LEVEL" \
         --secrets \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-        --dns-name-label "churn-api-${ENVIRONMENT}" \
+        --dns-name-label "churn-api-${ENVIRONMENT}-$(date +%s)" \
         --restart-policy Always \
         --output table
     
@@ -73,6 +90,7 @@ deploy_to_account1() {
             POSTGRES_USER="$POSTGRES_DB_USER" \
             AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
             ENVIRONMENT="$ENVIRONMENT" \
+            LOG_LEVEL="$LOG_LEVEL" \
         --secrets \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
         --restart-policy Never \
@@ -92,11 +110,12 @@ deploy_to_account1() {
             POSTGRES_DB="$POSTGRES_DB_NAME" \
             POSTGRES_USER="$POSTGRES_DB_USER" \
             AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
-            # Azure ML from Account 2
             AZURE_ML_SUBSCRIPTION_ID="$AZURE2_SUBSCRIPTION_ID" \
             AZURE_ML_RESOURCE_GROUP="$AZURE2_RESOURCE_GROUP" \
             AZURE_ML_WORKSPACE_NAME="$AZURE2_ML_WORKSPACE_NAME" \
+            MLFLOW_TRACKING_URI="$MLFLOW_TRACKING_URI" \
             ENVIRONMENT="$ENVIRONMENT" \
+            LOG_LEVEL="$LOG_LEVEL" \
         --secrets \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
         --restart-policy Never \
@@ -104,6 +123,9 @@ deploy_to_account1() {
 }
 
 main() {
+    # Validate environment first
+    validate_env
+    
     # Switch to Account 1 for deployment
     switch_to_account1
     
@@ -112,7 +134,14 @@ main() {
     
     log "✅ Deployment completed to Account 1"
     log "📊 Azure ML tracking in Account 2: $AZURE2_ML_WORKSPACE_NAME"
+    log "🌐 API URL: churn-api-${ENVIRONMENT}-*.${LOCATION}.azurecontainer.io:8000"
 }
 
 # Run with image arguments
+if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 <api-image> <data-pipeline-image> <training-image>"
+    echo "Example: $0 ghcr.io/org/api:latest ghcr.io/org/data:latest ghcr.io/org/training:latest"
+    exit 1
+fi
+
 main "$1" "$2" "$3"
