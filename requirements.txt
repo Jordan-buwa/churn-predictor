@@ -46,10 +46,10 @@ requests
 httpx
 
 # Development & Testing
-pytest
-pytest-asyncio
-requests-mock
-pytest-cov
+#pytest
+#pytest-asyncio
+#requests-mock
+#pytest-cov
 setuptools
 
 azure-ai-ml 
