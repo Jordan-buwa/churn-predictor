@@ -11,6 +11,7 @@ from datetime import datetime
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, classification_report
+from src.utils.mlflow_utils import setup_mlflow, mlflow_config
 from imblearn.combine import SMOTETomek
 import mlflow
 import traceback
@@ -56,7 +57,8 @@ class XGBoostTrainer:
     def __init__(self, config: dict, logger: logging.Logger):
         self.config = config
         self.logger = logger
-        self.logger.info("XGBoost trainer initialized")
+        setup_mlflow()
+        self.logger.info("XGBoost trainer initialized with MLflow")
 
     @staticmethod
     def find_best_threshold(y_true, y_probs):
@@ -278,9 +280,15 @@ class XGBoostTrainer:
             self.logger.info("\n" + classification_report(y, y_pred_full))
 
             #  MLflow Logging
-            input_example = X.head(5)
-            mlflow.xgboost.log_model(
-                final_model, name="xgboost_final_model", input_example=input_example)
+            if mlflow_config.is_azure_ml:
+                mlflow.xgboost.log_model(
+                    final_model, 
+                    "model",
+                    registered_model_name="churn-xgboost-model")
+            else:
+                input_example = X.head(5)
+                mlflow.xgboost.log_model(
+                    final_model, name="xgboost_final_model", input_example=input_example)
             mlflow.log_metrics(
                 {"final_accuracy": acc, "final_f1": best_f1, "final_roc_auc": roc})
             mlflow.log_metric("final_threshold", best_threshold)

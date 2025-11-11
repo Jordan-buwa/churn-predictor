@@ -1,46 +1,6 @@
-version: "3.11"
+version: '3.8'
+
 services:
-  # TRAINING SERVICE
-  train:
-    build:
-      context: .
-      dockerfile: docker/train/Dockerfile
-    container_name: churn-train
-    volumes:
-      - ./models:/app/models
-      - ./data:/app/data
-      - ./artifacts:/app/artifacts
-      - ./logs:/app/logs
-    environment:
-      - PYTHONPATH=/app
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-    depends_on:
-      - mlflow
-      - db
-    command: >
-      python -m src.models.utils.wait_for_services db 5432 http://mlflow:5000 &&
-      python src/models/train_xgb.py
-
-  # MLFLOW SERVICE
-  mlflow:
-    build:
-      context: .
-      dockerfile: docker/mlflow/Dockerfile
-    container_name: mlflow
-    command: >
-      mlflow server
-      --host 0.0.0.0
-      --port 5000
-      --backend-store-uri postgresql+psycopg2://mlflow_user:mlflow_pass@db:5432/mlflow_db
-      --default-artifact-root /app/artifacts
-    ports:
-      - "8080:5000"
-    volumes:
-      - ./mlruns:/app/mlruns
-      - ./artifacts:/app/artifacts
-    depends_on:
-      - db
-
   # API SERVICE
   api:
     build:
@@ -49,51 +9,98 @@ services:
     container_name: churn-api-jaw
     ports:
       - "8000:8000"
-    env_file:
-      - .env
-    depends_on:
-      - train
-      - mlflow
     environment:
-      - POSTGRES_HOST=jaw-postgresdb.postgres.database.azure.com
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB_NAME=postgres
-      - POSTGRES_DB_USER=jawpostgresdb
+      # PostgreSQL Configuration
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_DB_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - PYTHONPATH=/app
-      - MODEL_DIR=/app/models
-      - DATA_DIR=/app/data
-      - LOG_LEVEL=INFO
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      
+      # Azure Storage
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      
+      # Azure ML Configuration
+      - AZURE_SUBSCRIPTION_ID=${AZURE2_SUBSCRIPTION_ID}
+      - AZURE_RESOURCE_GROUP=${AZURE2_RESOURCE_GROUP}
+      - AZURE_ML_WORKSPACE_NAME=${AZURE2_ML_WORKSPACE_NAME}
+      
+      # MLflow (Auto-configured for Azure ML)
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      
+      # API Security
+      - AUTH_SECRET=${AUTH_SECRET}
+      
+      # Environment
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
     volumes:
       - ./models:/app/models
-      - ./data:/app/data
-    depends_on:
-      - mlflow
-      - db
-    command: >
-      python -m src.models.utils.wait_for_services db 5432 http://mlflow:5000 &&
-      uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      - data-pipeline
 
-  # DATABASE SERVICE
-  db:
-    image: postgres:15
-    container_name: zen_vaughan
+  # DATA PIPELINE SERVICE
+  data-pipeline:
+    build:
+      context: .
+      dockerfile: docker/data_pipeline/Dockerfile
+    container_name: churn-data-pipeline
     environment:
-      - POSTGRES_HOST=jaw-postgresdb.postgres.database.azure.com
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB_NAME=postgres
-      - POSTGRES_DB_USER=jawpostgresdb
+      # PostgreSQL Configuration
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_DB_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
+      
+      # Azure Storage
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      
+      # Environment
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
     volumes:
-      - 6a4a469def1fbc0aefc7191cdd95204be3f4d337f64acf7c531a00831291085f:/var/lib/postgresql/data
+      - ./data:/app/data
+      - ./logs:/app/logs
 
-volumes:
-  mlflow-db-data:
+  # TRAINING SERVICE
+  training:
+    build:
+      context: .
+      dockerfile: docker/training/Dockerfile
+    container_name: churn-training
+    environment:
+      # PostgreSQL Configuration
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_DB_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # Azure Storage
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      
+      # Azure ML Configuration
+      - AZURE_SUBSCRIPTION_ID=${AZURE2_SUBSCRIPTION_ID}
+      - AZURE_RESOURCE_GROUP=${AZURE2_RESOURCE_GROUP}
+      - AZURE_ML_WORKSPACE_NAME=${AZURE2_ML_WORKSPACE_NAME}
+      
+      # MLflow (Auto-configured for Azure ML)
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      
+      # Environment
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+    volumes:
+      - ./models:/app/models
+      - ./artifacts:/app/artifacts
+      - ./logs:/app/logs

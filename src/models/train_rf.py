@@ -25,6 +25,8 @@ from src.data_pipeline.pipeline_data import fetch_preprocessed
 # Suppressing unnecessary warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+from src.utils.mlflow_utils import setup_mlflow, mlflow_config
+setup_mlflow()
 
 # Loading environment variables
 load_dotenv()
@@ -252,12 +254,15 @@ if __name__ == "__main__":
         
         # Logging model to MLflow with model type in name
         mlflow_registry_name = f"{model_type}_churn_model"
-        mlflow.sklearn.log_model(
-            best_model, 
-            artifact_path="model",
-            registered_model_name=mlflow_registry_name,
-            input_example=X.iloc[:5]
-        )
+        if mlflow_config.is_azure_ml:
+            mlflow.sklearn.log_model(
+                best_model, 
+                artifact_path="model",
+                registered_model_name="churn-randomforest-model"  # Consistent naming
+            )
+        else:
+            mlflow.sklearn.log_model(best_model, artifact_path="model")
+
         
         # Logging additional metadata
         mlflow.log_param("model_type", model_type)
