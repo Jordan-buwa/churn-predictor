@@ -93,7 +93,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - mlflow-db-data:/var/lib/postgresql/data
+      - 6a4a469def1fbc0aefc7191cdd95204be3f4d337f64acf7c531a00831291085f:/var/lib/postgresql/data
 
 volumes:
   mlflow-db-data:
