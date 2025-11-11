@@ -25,7 +25,7 @@ if os.getenv("ENVIRONMENT") == "test":
     from unittest.mock import MagicMock
     current_active_user = MagicMock(id="test-user")
 else:
-    from src.api.routers.users import current_active_user
+    from src.api.routers.auth import current_active_user
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)

@@ -36,7 +36,15 @@ jobs:
           ENVIRONMENT: test
           DATABASE_URL: sqlite:///./test_api.db
         run: |
-          pytest -q tests/api
+          pytest --cov=src/api --cov-report=xml:coverage.xml -q tests/api
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build API Docker image
         run: |
