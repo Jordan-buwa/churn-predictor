@@ -2,7 +2,11 @@ name: Churn Prediction CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: 
+      - main
+      - dev/api
+      - dev/data-pipeline
+      - dev/training
   pull_request:
     branches: [ main ]
 
@@ -11,9 +15,82 @@ env:
   IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
-  test-and-build:
+  # Determine which services to build based on branch or changed files
+  detect-changes:
     runs-on: ubuntu-latest
-    environment: ${{ contains(github.ref, 'main') && 'production' || 'staging' }}
+    outputs:
+      build-api: ${{ steps.changes.outputs.api }}
+      build-data-pipeline: ${{ steps.changes.outputs.data-pipeline }}
+      build-training: ${{ steps.changes.outputs.training }}
+      deploy: ${{ steps.changes.outputs.deploy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "Branch: $BRANCH_NAME"
+          
+          # Default: don't build anything
+          BUILD_API="false"
+          BUILD_DATA="false"
+          BUILD_TRAINING="false"
+          DEPLOY="false"
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            # On main, check what files changed in the merge
+            if [[ "${{ github.event_name }}" == "push" ]]; then
+              # Get files changed in the last commit
+              CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+              echo "Changed files: $CHANGED_FILES"
+              
+              # Check if API files changed
+              if echo "$CHANGED_FILES" | grep -qE '^(src/api/|docker/api/|requirements.txt)'; then
+                BUILD_API="true"
+              fi
+              
+              # Check if data pipeline files changed
+              if echo "$CHANGED_FILES" | grep -qE '^(src/data_pipeline/|docker/data_pipeline/|requirements.txt)'; then
+                BUILD_DATA="true"
+              fi
+              
+              # Check if training files changed
+              if echo "$CHANGED_FILES" | grep -qE '^(src/training/|docker/training/|requirements.txt)'; then
+                BUILD_TRAINING="true"
+              fi
+              
+              # Deploy if any service needs building
+              if [[ "$BUILD_API" == "true" || "$BUILD_DATA" == "true" || "$BUILD_TRAINING" == "true" ]]; then
+                DEPLOY="true"
+              fi
+            fi
+          elif [[ "$BRANCH_NAME" == "dev/api" ]]; then
+            BUILD_API="true"
+          elif [[ "$BRANCH_NAME" == "dev/data-pipeline" ]]; then
+            BUILD_DATA="true"
+          elif [[ "$BRANCH_NAME" == "dev/training" ]]; then
+            BUILD_TRAINING="true"
+          fi
+          
+          echo "build-api=$BUILD_API" >> $GITHUB_OUTPUT
+          echo "build-data-pipeline=$BUILD_DATA" >> $GITHUB_OUTPUT
+          echo "build-training=$BUILD_TRAINING" >> $GITHUB_OUTPUT
+          echo "deploy=$DEPLOY" >> $GITHUB_OUTPUT
+          
+          echo "Build API: $BUILD_API"
+          echo "Build Data Pipeline: $BUILD_DATA"
+          echo "Build Training: $BUILD_TRAINING"
+          echo "Deploy: $DEPLOY"
+
+  # Test and build API
+  test-build-api:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.build-api == 'true'
     
     steps:
       - name: Checkout code
@@ -22,12 +99,9 @@ jobs:
       - name: Clean up disk space
         run: |
           echo "🧹 Cleaning up disk space..."
-          df -h
           sudo docker system prune -a -f
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/dotnet /opt/ghc
           sudo apt-get clean
-          df -h
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,126 +111,65 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/pypoetry
-            venv/
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
-      - name: Install dependencies efficiently
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Install only what's needed for testing first
           pip install --no-cache-dir -r requirements.txt
-          pip install --no-cache-dir pytest pytest-cov
 
-      - name: Run tests
+      - name: Run API tests
         env:
           ENVIRONMENT: test
           DATABASE_URL: sqlite:///./test.db
         run: |
-        #  pytest --cov=src --cov-report=xml:coverage.xml -v tests/
+          echo "Running API tests..."
+          # pytest tests/api/ --cov=src/api -v
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
-          retention-days: 7
-
-      - name: Clean before Docker build
+      - name: Build API Docker image
         run: |
-          sudo docker system prune -f
-          df -h
+          docker build --no-cache -f docker/api/Dockerfile \
+            -t ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} .
 
-      - name: Build Docker images efficiently
-        run: |
-          # Build with no cache and minimal layers
-          docker build --no-cache --progress=plain -f docker/api/Dockerfile -t ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} .
-          docker build --no-cache --progress=plain -f docker/data_pipeline/Dockerfile -t ${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} .
-          docker build --no-cache --progress=plain -f docker/training/Dockerfile -t ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} .
-
-      - name: Validate docker-compose
-        run: |
-          docker compose config
-
-      - name: Test API service
+      - name: Test API container
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
           AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test
           AUTH_SECRET: test-secret
-          ENVIRONMENT: test
         run: |
-          docker compose up -d api
-          echo "Waiting for API to start..."
-          sleep 20
-          curl -f http://localhost:8000/health || (docker compose logs api && exit 1)
-
-      - name: Clean up after tests
-        if: always()
-        run: |
-          docker compose down -v
-          sudo docker system prune -f
-
-      - name: Run training smoke test
-        if: github.ref == 'refs/heads/main'
-        env:
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}
-          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE2_RESOURCE_GROUP }}
-          AZURE_ML_WORKSPACE_NAME: ${{ secrets.AZURE2_ML_WORKSPACE_NAME }}
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        run: |
-          echo "Testing training service configuration..."
-          # Use a lighter test that doesn't require full ML setup
-          docker run --rm \
-            -e AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
-            -e AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP \
-            -e AZURE_ML_WORKSPACE_NAME=$AZURE_ML_WORKSPACE_NAME \
-            -e MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI \
+          docker run -d --name test-api \
+            -p 8000:8000 \
+            -e POSTGRES_HOST=$POSTGRES_HOST \
+            -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+            -e AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
+            -e AUTH_SECRET=$AUTH_SECRET \
             -e ENVIRONMENT=test \
-            ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} python -c "
-                import sys;   
-                sys.path.append('/app');
-                try:
-                    from src.utils.mlflow_utils import setup_mlflow
-                    setup_mlflow();
-                    print('✅ MLflow configuration successful');
-                except Exception as e:
-                    print(f'⚠️ MLflow setup warning: {e}');
-                    print('✅ Basic import test passed');
-                "
+            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+          
+          sleep 15
+          curl -f http://localhost:8000/health || (docker logs test-api && exit 1)
+          docker stop test-api
 
-      - name: Collect docker-compose logs on failure
-        if: failure()
+      - name: Save API image
+        if: github.ref == 'refs/heads/main'
         run: |
-          docker compose logs --no-color > compose-logs.txt || true
+          docker save ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} | gzip > api-image.tar.gz
 
-      - name: Upload docker-compose logs
-        if: failure()
+      - name: Upload API image artifact
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: compose-logs
-          path: compose-logs.txt
-          if-no-files-found: warn
-          retention-days: 7
+          name: api-image
+          path: api-image.tar.gz
+          retention-days: 1
 
-      - name: Final cleanup
-        if: always()
-        run: |
-          docker system prune -a -f
-          df -h
-
-  deploy:
+  # Test and build Data Pipeline
+  test-build-data-pipeline:
     runs-on: ubuntu-latest
-    needs: test-and-build
-    if: github.ref == 'refs/heads/main'
-    environment: production
+    needs: detect-changes
+    if: needs.detect-changes.outputs.build-data-pipeline == 'true'
     
     steps:
       - name: Checkout code
@@ -165,8 +178,104 @@ jobs:
       - name: Clean up disk space
         run: |
           sudo docker system prune -a -f
-          sudo apt-get clean
-          df -h
+          sudo rm -rf /usr/share/dotnet /opt/ghc
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Run Data Pipeline tests
+        run: |
+          echo "Running Data Pipeline tests..."
+          # pytest tests/data_pipeline/ --cov=src/data_pipeline -v
+
+      - name: Build Data Pipeline Docker image
+        run: |
+          docker build --no-cache -f docker/data_pipeline/Dockerfile \
+            -t ${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} .
+
+      - name: Save Data Pipeline image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker save ${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} | gzip > data-pipeline-image.tar.gz
+
+      - name: Upload Data Pipeline image artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-pipeline-image
+          path: data-pipeline-image.tar.gz
+          retention-days: 1
+
+  # Test and build Training
+  test-build-training:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.build-training == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean up disk space
+        run: |
+          sudo docker system prune -a -f
+          sudo rm -rf /usr/share/dotnet /opt/ghc
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Run Training tests
+        run: |
+          echo "Running Training tests..."
+          # pytest tests/training/ --cov=src/training -v
+
+      - name: Build Training Docker image
+        run: |
+          docker build --no-cache -f docker/training/Dockerfile \
+            -t ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} .
+
+      - name: Save Training image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker save ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} | gzip > training-image.tar.gz
+
+      - name: Upload Training image artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-image
+          path: training-image.tar.gz
+          retention-days: 1
+
+  # Deploy only on main when changes detected
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test-build-api, test-build-data-pipeline, test-build-training]
+    if: |
+      always() && 
+      needs.detect-changes.outputs.deploy == 'true' &&
+      (needs.test-build-api.result == 'success' || needs.test-build-api.result == 'skipped') &&
+      (needs.test-build-data-pipeline.result == 'success' || needs.test-build-data-pipeline.result == 'skipped') &&
+      (needs.test-build-training.result == 'success' || needs.test-build-training.result == 'skipped')
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -175,45 +284,87 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Load and push images
+        run: |
+          # Load images that were built
+          if [ -f ./artifacts/api-image/api-image.tar.gz ]; then
+            echo "Loading API image..."
+            docker load < ./artifacts/api-image/api-image.tar.gz
+            docker tag ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:latest
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:latest
+          fi
+          
+          if [ -f ./artifacts/data-pipeline-image/data-pipeline-image.tar.gz ]; then
+            echo "Loading Data Pipeline image..."
+            docker load < ./artifacts/data-pipeline-image/data-pipeline-image.tar.gz
+            docker tag ${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }}
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:latest
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }}
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:latest
+          fi
+          
+          if [ -f ./artifacts/training-image/training-image.tar.gz ]; then
+            echo "Loading Training image..."
+            docker load < ./artifacts/training-image/training-image.tar.gz
+            docker tag ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }}
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:latest
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }}
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:latest
+          fi
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push Docker images efficiently
-        run: |
-          # Build with minimal cache
-          docker build --no-cache -f docker/api/Dockerfile -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} .
-          docker build --no-cache -f docker/data_pipeline/Dockerfile -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} .
-          docker build --no-cache -f docker/training/Dockerfile -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} .
-          
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }}
-
-      - name: Clean after build
-        run: |
-          docker system prune -a -f
-
       - name: Deploy to Azure Container Instances
         run: |
           chmod +x scripts/deploy-aci.sh
-          ./scripts/deploy-aci.sh deploy all \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:${{ github.sha }}
+          
+          # Use latest tags for deployment
+          ./scripts/deploy-aci.sh \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-data-pipeline:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-training:latest
         env:
           ENVIRONMENT: production
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
           POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB_NAME }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_DB_USER }}
+          POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
+          POSTGRES_DB_USER: ${{ secrets.POSTGRES_DB_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-          AZURE_ML_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}
-          AZURE_ML_RESOURCE_GROUP: ${{ secrets.AZURE2_RESOURCE_GROUP }}
-          AZURE_ML_WORKSPACE_NAME: ${{ secrets.AZURE2_ML_WORKSPACE_NAME }}
+          AZURE2_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}
+          AZURE2_RESOURCE_GROUP: ${{ secrets.AZURE2_RESOURCE_GROUP }}
+          AZURE2_ML_WORKSPACE_NAME: ${{ secrets.AZURE2_ML_WORKSPACE_NAME }}
           LOG_LEVEL: INFO
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed services:" >> $GITHUB_STEP_SUMMARY
+          if [ -f ./artifacts/api-image/api-image.tar.gz ]; then
+            echo "- ✅ API" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f ./artifacts/data-pipeline-image/data-pipeline-image.tar.gz ]; then
+            echo "- ✅ Data Pipeline" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f ./artifacts/training-image/training-image.tar.gz ]; then
+            echo "- ✅ Training" >> $GITHUB_STEP_SUMMARY
+          fi

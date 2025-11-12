@@ -89,7 +89,7 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory="src/api/templates")  
 
-app.state.allowed_models = get_allowed_model_types()   # e.g. ["xgboost","random-forest","neural-net"]
+app.state.allowed_models = get_allowed_model_types()  
 app.state.environment   = os.getenv("ENVIRONMENT", "development")
 
 
