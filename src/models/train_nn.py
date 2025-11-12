@@ -1,11 +1,11 @@
 from src.models.tuning.optuna_nn import run_optuna_optimization
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 from src.data_pipeline.pipeline_data import fetch_preprocessed
+from src.utils.mlflow_config import setup_mlflow, mlflow_config
 from src.models.utils.util_nn import create_fold_dataloaders
 from src.models.utils.eval_nn import evaluate_model
 from src.models.utils.train_util import train_model
 from src.models.network.neural_net import ChurnNN
-
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report
 from mlflow.models import infer_signature

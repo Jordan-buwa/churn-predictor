@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>{% block title %}Churn Prediction API{% endblock %}</title>
 
     <!-- Bootstrap 5 (CDN) -->
@@ -11,16 +10,231 @@
           rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
           crossorigin="anonymous">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { padding-top: 56px; }   /* space for fixed navbar */
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4bb543;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --radius: 12px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        html, body {
+            height: 100%;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            padding-top: 76px;
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .main-content {
+            flex: 1 0 auto;
+            width: 100%;
+        }
+        
+        .footer {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--secondary), #2a1b7a);
+            color: white;
+            padding: 2rem 0;
+            margin-top: auto; /* This pushes the footer to the bottom */
+            border-top-left-radius: var(--radius);
+            border-top-right-radius: var(--radius);
+        }
+        
+        /* The rest of your CSS remains the same */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+            box-shadow: var(--shadow);
+            padding: 0.8rem 0;
+            transition: var(--transition);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .navbar-brand i {
+            color: var(--accent);
+            font-size: 1.7rem;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            margin: 0 2px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        
+        .nav-link:hover {
+            color: white !important;
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .nav-link.active {
+            color: white !important;
+            background-color: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+        
+        .navbar-toggler {
+            border: none;
+            color: white;
+        }
+        
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+        
+        .container {
+            max-width: 1200px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem 1.25rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: var(--radius);
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+        }
+        
+        .form-control {
+            border-radius: var(--radius);
+            border: 1px solid #e1e5eb;
+            padding: 0.75rem 1rem;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
+        }
+        
+        .table {
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        
+        .table thead th {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem;
+        }
+        
+        .table tbody td {
+            padding: 0.75rem 1rem;
+            border-color: #e9ecef;
+        }
+        
+        .shape-divider {
+            position: relative;
+            height: 60px;
+            overflow: hidden;
+        }
+        
+        .shape-divider::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            clip-path: polygon(0 0, 100% 0, 100% 50%, 0 100%);
+        }
+        
+        .badge-custom {
+            background: linear-gradient(135deg, var(--accent), #3a86ff);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-weight: 500;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .alert {
+            animation: fadeIn 0.5s ease;
+            border-radius: var(--radius);
+            border: none;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding-top: 66px;
+            }
+            
+            .navbar-brand {
+                font-size: 1.3rem;
+            }
+        }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">Churn API</a>
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-chart-line"></i>
+            Churn Prediction API
+        </a>
 
         <button class="navbar-toggler"
                 type="button"
@@ -34,21 +248,53 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/ingest">Ingest</a></li>
-                <li class="nav-item"><a class="nav-link" href="/predict">Predict</a></li>
-                <li class="nav-item"><a class="nav-link" href="/train">Train</a></li>
-                <li class="nav-item"><a class="nav-link" href="/metrics">Metrics</a></li>
-                <li class="nav-item"><a class="nav-link" href="/data_view">Data View</a></li>
-                <li class="nav-item"><a class="nav-link" href="/health-ui">Health</a></li>
+                <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/ingest"><i class="fas fa-database me-1"></i> Ingest</a></li>
+                <li class="nav-item"><a class="nav-link" href="/predict"><i class="fas fa-search me-1"></i> Predict</a></li>
+                <li class="nav-item"><a class="nav-link" href="/train"><i class="fas fa-cogs me-1"></i> Train</a></li>
+                <li class="nav-item"><a class="nav-link" href="/metrics"><i class="fas fa-chart-bar me-1"></i> Metrics</a></li>
+                <li class="nav-item"><a class="nav-link" href="/data_view"><i class="fas fa-table me-1"></i> Data View</a></li>
+                <li class="nav-item"><a class="nav-link" href="/health-ui"><i class="fas fa-heartbeat me-1"></i> Health</a></li>
             </ul>
+            
+            <div class="d-flex">
+                <span class="badge badge-custom">
+                    <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
+                    System Online
+                </span>
+            </div>
         </div>
     </div>
 </nav>
 
-<div class="container mt-4">
-    {% block content %}{% endblock %}
+<!-- Shape Divider for visual interest -->
+<div class="shape-divider"></div>
+
+<div class="main-content">
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
 </div>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="fas fa-chart-line me-2"></i>Churn Prediction API</h5>
+                <p>Advanced machine learning solution for customer churn prediction and analysis.</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p>&copy; 2023 Churn Prediction API. All rights reserved.</p>
+                <div class="mt-2">
+                    <a href="#" class="text-white me-3"><i class="fab fa-github"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
 
 <!-- Bootstrap JS bundle (includes Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

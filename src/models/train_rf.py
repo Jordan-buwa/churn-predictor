@@ -25,7 +25,7 @@ from src.data_pipeline.pipeline_data import fetch_preprocessed
 # Suppressing unnecessary warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-from src.utils.mlflow_utils import setup_mlflow, mlflow_config
+from src.utils.mlflow_config import setup_mlflow, mlflow_config
 setup_mlflow()
 
 # Loading environment variables
