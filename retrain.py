@@ -17,7 +17,7 @@ import pandas as pd
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
-from src.utils.mlflow_utils import setup_mlflow, mlflow_config
+from src.utils.mlflow_config import setup_mlflow, mlflow_config
 from src.data_pipeline.pipeline_data import fetch_preprocessed
 from src.models.train_nn import NeuralNetworkTrainer
 from src.models.train_xgb import XGBoostTrainer, setup_logger as xgb_logger

@@ -11,7 +11,7 @@ from datetime import datetime
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, classification_report
-from src.utils.mlflow_utils import setup_mlflow, mlflow_config
+from src.utils.mlflow_config import setup_mlflow, mlflow_config
 from imblearn.combine import SMOTETomek
 import mlflow
 import traceback
