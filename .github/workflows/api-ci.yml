@@ -535,4 +535,4 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** production" >> $GITHUB_STEP_SUMMARY
-          echo "**Azure Resource Group:** churn-prediction-rg" >> $GITHUB_STEP_SUMMARY
+          echo "**Azure Resource Group:** churn-prediction-rg" >> $GITHUB_STEP_SUMMARY 
