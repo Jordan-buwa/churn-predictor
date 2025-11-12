@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 sys.path.append(str(Path(__file__).parent.parent))
-# Load environment variables
+# Load environment variable
 load_dotenv()
 
 MODEL_DIR = os.getenv("MODEL_DIR", "models/")
