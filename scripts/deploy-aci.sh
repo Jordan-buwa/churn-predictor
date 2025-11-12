@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 RESOURCE_GROUP="churn-prediction-rg"
-LOCATION="eastus"
+LOCATION="francecentral"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 
 log() {
