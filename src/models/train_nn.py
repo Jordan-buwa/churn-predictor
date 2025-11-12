@@ -95,7 +95,7 @@ class NeuralNetworkTrainer():
         return best_thresh, best_f1
     def train_and_tune(self):
         # Run Optuna optimization
-        self.logger.info("Starting hyperparameter optimization with Optuna...")
+        self.logger.info("Starting hyperparameter optimization with Optuna.....")
         study = self.tuner()
         self.logger.info(f"Hyperparameter optimization completed!\nBest Hyperparameters: {study.best_params}\nBest AUC-ROC: {study.best_value:.4f}")
         print("\nBest Hyperparameters:", study.best_params)
