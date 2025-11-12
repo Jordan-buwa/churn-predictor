@@ -8,6 +8,8 @@ from datetime import datetime
 from azure.identity import DefaultAzureCredential
 from .utils.models_types import ModelType, validate_model_type, normalize_model_type
 from .utils.config import get_model_path as config_get_model_path
+from src.utils.mlflow_config import AzureMLFlowConfig
+mlflow_config = AzureMLFlowConfig()
 
 
 logger = logging.getLogger(__name__)
@@ -30,42 +32,9 @@ def get_local_model_path(model_type: str) -> Path:
     if not validate_model_type(normalized_type):
         raise ValueError(f"Unknown model type: {model_type}. Supported: {ModelType.get_all_types()}")
     
-    models_dir = Path("models/")
-    if not models_dir.exists() or not models_dir.is_dir():
-        raise FileNotFoundError(f"Models directory not found: {models_dir}")
-
-    identifiers = {
-        ModelType.XGBOOST: {"xgboost", "xgb"},
-        ModelType.RANDOM_FOREST: {"random_forest", "random-forest", "rf", ".joblib"},
-        ModelType.NEURAL_NET: {"neural", "nn", ".pth", ".h5", ".pt"},
-    }
-
-    patterns = identifiers[normalized_type]
-    
-    candidates: list[tuple[float, Path]] = []
-    
-    for file_path in models_dir.iterdir():
-        if not file_path.is_file():
-            continue
-        
-        name_lower = file_path.name.lower()
-        suffix_lower = file_path.suffix.lower()
-        
-        matches = any(
-            pat.lstrip(".") in name_lower or
-            (pat.startswith(".") and pat == suffix_lower)
-            for pat in patterns
-        )
-        
-        if matches:
-            mtime = file_path.stat().st_mtime
-            candidates.append((mtime, file_path))
-    
-    if not candidates:
-        raise FileNotFoundError(f"No model file found for type '{model_type}' in {models_dir}")
-    
-    latest_path = sorted(candidates, key=lambda x: x[0], reverse=True)[0][1]
-    return latest_path
+    # Use API config's standardized retrieval (metadata-aware)
+    path_str = config_get_model_path(normalized_type)
+    return Path(path_str)
 
 def get_model_path(model_type: str) -> Path:
     """Return latest model path using centralized config and structured metadata."""
