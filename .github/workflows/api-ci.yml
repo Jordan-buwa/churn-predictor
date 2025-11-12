@@ -404,7 +404,7 @@ jobs:
     needs: [test-build-api, test-build-data-pipeline, test-build-training]
     if: |
       always() && 
-      (needs.test-build-api.result == 'success' || needs.test-build-api.result == 'skipped') &&
+      needs.detect-changes.outputs.deploy == 'true' &&
       (needs.test-build-data-pipeline.result == 'success' || needs.test-build-data-pipeline.result == 'skipped') &&
       (needs.test-build-training.result == 'success' || needs.test-build-training.result == 'skipped')
     environment: production
@@ -510,6 +510,7 @@ jobs:
           POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
           POSTGRES_DB_USER: ${{ secrets.POSTGRES_DB_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
           AZURE2_SUBSCRIPTION_ID: ${{ secrets.AZURE2_SUBSCRIPTION_ID }}

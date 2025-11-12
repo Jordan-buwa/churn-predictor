@@ -35,8 +35,13 @@ validate_env() {
     if [[ -n "${AZURE2_SUBSCRIPTION_ID}" ]] && [[ -n "${AZURE2_ML_WORKSPACE_NAME}" ]]; then
         log "✅ Account 2 (ML) configuration detected"
         
-        # Check if we have service principal credentials for Account 2
-        if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
+        # Support both naming conventions for Account 2 credentials
+        # GitHub secrets: AZURE_CLIENT_ID or AZURE2_CLIENT_ID
+        CLIENT_ID="${AZURE2_CLIENT_ID:-${AZURE_CLIENT_ID}}"
+        CLIENT_SECRET="${AZURE2_CLIENT_SECRET:-${AZURE_CLIENT_SECRET}}"
+        TENANT_ID="${AZURE2_TENANT_ID:-${AZURE_TENANT_ID}}"
+        
+        if [[ -n "${CLIENT_ID}" ]] && [[ -n "${CLIENT_SECRET}" ]] && [[ -n "${TENANT_ID}" ]]; then
             log "✅ Account 2 service principal credentials provided"
         else
             log "⚠️  Account 2 configured but no service principal credentials. Containers will use DefaultAzureCredential."
@@ -133,8 +138,13 @@ deploy_containers() {
     SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AUTH_SECRET=$AUTH_SECRET AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
     
     # Add Account 2 service principal credentials if provided
-    if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
-        SECURE_ENV_VARS="$SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE2_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE2_CLIENT_SECRET AZURE_TENANT_ID=$AZURE2_TENANT_ID"
+    # Support both AZURE_CLIENT_ID and AZURE2_CLIENT_ID naming
+    CLIENT_ID="${AZURE2_CLIENT_ID:-${AZURE_CLIENT_ID}}"
+    CLIENT_SECRET="${AZURE2_CLIENT_SECRET:-${AZURE_CLIENT_SECRET}}"
+    TENANT_ID="${AZURE2_TENANT_ID:-${AZURE_TENANT_ID}}"
+    
+    if [[ -n "${CLIENT_ID}" ]] && [[ -n "${CLIENT_SECRET}" ]] && [[ -n "${TENANT_ID}" ]]; then
+        SECURE_ENV_VARS="$SECURE_ENV_VARS AZURE_CLIENT_ID=$CLIENT_ID AZURE_CLIENT_SECRET=$CLIENT_SECRET AZURE_TENANT_ID=$TENANT_ID"
         log "Adding Account 2 service principal credentials to containers"
     fi
     
@@ -197,8 +207,14 @@ deploy_containers() {
     
     # Prepare secure env vars for training (includes Account 2 credentials)
     TRAINING_SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
-    if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
-        TRAINING_SECURE_ENV_VARS="$TRAINING_SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE2_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE2_CLIENT_SECRET AZURE_TENANT_ID=$AZURE2_TENANT_ID"
+    
+    # Support both naming conventions
+    CLIENT_ID="${AZURE2_CLIENT_ID:-${AZURE_CLIENT_ID}}"
+    CLIENT_SECRET="${AZURE2_CLIENT_SECRET:-${AZURE_CLIENT_SECRET}}"
+    TENANT_ID="${AZURE2_TENANT_ID:-${AZURE_TENANT_ID}}"
+    
+    if [[ -n "${CLIENT_ID}" ]] && [[ -n "${CLIENT_SECRET}" ]] && [[ -n "${TENANT_ID}" ]]; then
+        TRAINING_SECURE_ENV_VARS="$TRAINING_SECURE_ENV_VARS AZURE_CLIENT_ID=$CLIENT_ID AZURE_CLIENT_SECRET=$CLIENT_SECRET AZURE_TENANT_ID=$TENANT_ID"
     fi
     
     # Deploy Training (on-demand)
@@ -291,9 +307,9 @@ if [[ $# -lt 3 ]]; then
     echo "  - MLFLOW_TRACKING_URI"
     echo ""
     echo "Optional (Account 2 - Service Principal Authentication):"
-    echo "  - AZURE2_CLIENT_ID"
-    echo "  - AZURE2_CLIENT_SECRET"
-    echo "  - AZURE2_TENANT_ID"
+    echo "  - AZURE2_CLIENT_ID or AZURE_CLIENT_ID"
+    echo "  - AZURE2_CLIENT_SECRET or AZURE_CLIENT_SECRET"
+    echo "  - AZURE2_TENANT_ID or AZURE_TENANT_ID"
     echo ""
     echo "Note: Login to Account 1 first (az login)"
     exit 1
