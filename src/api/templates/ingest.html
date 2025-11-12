@@ -46,15 +46,34 @@
 
 {% block javascript %}
 <script>
-    document.querySelectorAll('form').forEach(f => {
-        f.addEventListener('submit', async e => {
-            e.preventDefault();
-            const fd = new FormData(f);
-            const url = f.id === 'singleForm' ? '/ingest/single' : '/ingest/batch';
-            const res = await fetch(url, {method: 'POST', body: fd});
-            const data = await res.json();
-            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('csvFile');
+    const sourceInput = document.getElementById('source');
+    
+    formData.append('file', fileInput.files[0]);
+    formData.append('source', sourceInput.value);
+    
+    try {
+        const response = await fetch('/ingest/csv', {
+            method: 'POST',
+            body: formData
+            // Don't set Content-Type header for FormData - browser will set it with boundary
         });
-    });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert(`Success! Processed ${result.records_processed} records.`);
+        
+    } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Upload failed: ' + error.message);
+    }
+});
 </script>
 {% endblock %}

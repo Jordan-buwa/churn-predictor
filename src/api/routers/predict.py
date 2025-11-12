@@ -9,7 +9,6 @@ import os
 import joblib
 import json
 import logging
-
 from src.api.utils.config import APIConfig, get_model_path, get_allowed_model_types
 from src.api.utils.response_models import PredictionResponse
 from src.api.utils.error_handlers import (
@@ -62,14 +61,13 @@ def load_model_by_type(model_type: str):
     return model
 
 def map_dropdowns(payload: dict) -> dict:
-    # PRIZM
+    # --- PRIZM ---
     prizm = payload.pop("prizm_cluster", None)
-    if prizm:
-        payload["prizmrur"] = 1 if prizm == "rural" else 0
-        payload["prizmub"]  = 1 if prizm == "urban" else 0
-        payload["prizmtwn"] = 1 if prizm == "town"  else 0
+    payload["prizmrur"] = 1 if prizm == "rural" else 0
+    payload["prizmub"]  = 1 if prizm == "urban" else 0
+    payload["prizmtwn"] = 1 if prizm == "town"  else 0
 
-    # OCCUPATION
+    # --- OCCUPATION ---
     occ = payload.pop("occupation", None)
     occ_map = {
         "professional": "occprof",
@@ -80,16 +78,31 @@ def map_dropdowns(payload: dict) -> dict:
         "retired": "occret",
         "self-employed": "occself"
     }
-    for k in occ_map.values():
-        payload[k] = 0
+    # Initialize all to 0
+    for col in occ_map.values():
+        payload[col] = 0
     if occ and occ in occ_map:
         payload[occ_map[occ]] = 1
 
-    # MARITAL
+    # --- MARITAL ---
     marital = payload.pop("marital_status", "unknown")
     payload["marryyes"] = 1 if marital == "married" else 0
-    payload["marryun"] = 1 if marital == "unmarried" else 0
+    payload["marryun"]  = 1 if marital == "unmarried" else 0
 
+    return payload
+
+import numpy as np
+
+def null_to_nan(payload: dict) -> dict:
+    """
+    Recursively convert JSON `null` (Python `None`) to `np.nan`.
+    Leaves numbers/strings untouched.
+    """
+    for key, value in payload.items():
+        if value is None:
+            payload[key] = np.nan
+        elif isinstance(value, dict):
+            null_to_nan(value)  # in case of nested payloads
     return payload
 
 @router.post("/{model_type}", response_model=PredictionResponse)
@@ -99,10 +112,13 @@ def predict_from_payload(
         "revenue": 45.3, "mou": 120.5, "months": 12, "credita": "A",
     })
 ):
+
     """
     Accept raw customer data → predict churn.
     """
+
     payload = map_dropdowns(payload)
+    payload = null_to_nan(payload)
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -147,7 +163,7 @@ def predict_from_payload(
         df_processed = processor.preprocess(df)
         feature_names = processor.get_feature_names()
         features_dict = df_processed[feature_names].iloc[0].to_dict()
-        X = [list(features_dict.values())]
+        X = np.array([list(features_dict.values())], dtype=np.float32)
 
         # Load model & predict
         model_path = get_latest_model(model_type)

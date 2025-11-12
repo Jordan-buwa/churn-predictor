@@ -1,19 +1,15 @@
-from sqlalchemy import create_engine, Column, String, Boolean
+from sqlalchemy import create_engine, Column, String, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from datetime import datetime
 import os
-# fastapi-users is optional for tests; import only when available
-SQLAlchemyBaseUserTableUUID = None
-if os.getenv("ENVIRONMENT", "development") != "test":
-    try:
-        from fastapi_users.db import SQLAlchemyBaseUserTableUUID  # type: ignore
-    except ImportError:
-        SQLAlchemyBaseUserTableUUID = None
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# Allow overriding the database URL explicitly for tests and deployments
+# Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
@@ -24,19 +20,25 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
-if SQLAlchemyBaseUserTableUUID is not None:
-    class User(SQLAlchemyBaseUserTableUUID, Base):
-        pass
-else:
-    # Minimal fallback User model for test environment without fastapi-users
-    class User(Base):
-        __tablename__ = "users"
-        id = Column(String, primary_key=True)
-        email = Column(String, unique=True, nullable=False)
-        hashed_password = Column(String, nullable=False)
-        is_active = Column(Boolean, default=True)
-        is_superuser = Column(Boolean, default=False)
-        is_verified = Column(Boolean, default=False)
+# User model for authentication
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Database dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

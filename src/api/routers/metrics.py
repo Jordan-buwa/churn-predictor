@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, APIRouter, status
+from fastapi import Depends, HTTPException, APIRouter, status
 import os
 import joblib
 import json
@@ -63,7 +63,7 @@ def get_metrics(model_type: str):
         model = load_model_by_type(model_type)
 
         # Predict
-        if model_type == "neural-net":
+        if model_type == "neural_net":
             import torch
             X_tensor = torch.tensor(X_test, dtype=torch.float32)
             with torch.no_grad():

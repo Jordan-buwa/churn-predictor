@@ -12,10 +12,12 @@ from fastapi_users.manager import BaseUserManager, UUIDIDMixin
 from fastapi_users import schemas as fau_schemas
 from sqlalchemy.orm import Session
 
-from src.api.db import User, SessionLocal
+from src.api.db import User, get_db
 
 def get_jwt_strategy() -> JWTStrategy:
     secret = os.getenv("AUTH_SECRET", "CHANGE_ME")
+    if secret == "CHANGE_ME":
+        print("⚠️  WARNING: Using default AUTH_SECRET - set AUTH_SECRET environment variable for production")
     return JWTStrategy(secret=secret, lifetime_seconds=3600)
 
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
@@ -25,13 +27,6 @@ auth_backend = AuthenticationBackend(
     transport=bearer_transport,
     get_strategy=get_jwt_strategy,
 )
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def get_user_db(session: Session = Depends(get_db)):
     yield SQLAlchemyUserDatabase(session, User)
@@ -43,6 +38,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         self.verification_token_secret = os.getenv("AUTH_SECRET", "CHANGE_ME")
 
     async def on_after_register(self, user: User, request=None):
+        print(f"User {user.email} has registered.")
         return
 
 def get_user_manager(user_db=Depends(get_user_db)):
