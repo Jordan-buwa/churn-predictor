@@ -135,7 +135,7 @@ deploy_containers() {
     done
     
     # Prepare secure environment variables for Account 2 access
-    SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AUTH_SECRET=$AUTH_SECRET AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
+    SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AUTH_SECRET=$AUTH_SECRET"
     
     # Add Account 2 service principal credentials if provided
     # Support both AZURE_CLIENT_ID and AZURE2_CLIENT_ID naming
@@ -192,7 +192,6 @@ deploy_containers() {
         --memory 1.5 \
         --secure-environment-variables \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
         --environment-variables \
             POSTGRES_HOST="$POSTGRES_HOST" \
             POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
@@ -206,7 +205,7 @@ deploy_containers() {
     log "✅ Data Pipeline deployed (on-demand)"
     
     # Prepare secure env vars for training (includes Account 2 credentials)
-    TRAINING_SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
+    TRAINING_SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
     
     # Support both naming conventions
     CLIENT_ID="${AZURE2_CLIENT_ID:-${AZURE_CLIENT_ID}}"
