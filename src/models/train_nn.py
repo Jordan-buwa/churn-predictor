@@ -251,8 +251,8 @@ class NeuralNetworkTrainer():
             mlflow.pytorch.log_model(self.model, "model")        
         return self
         
-    # Save model using centralized store (full torch model)
-    def save_model(self):
+    # Save model using centralized store
+    def save_model(self): 
         try:
             from src.models.utils.model_store import save_model_artifacts
             # Build schema artifact for parity with RF/XGB

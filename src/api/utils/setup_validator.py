@@ -19,7 +19,7 @@ class SetupValidator:
         logger.info("Validating imports...")
         
         import_checks = [
-            ("model_types", "from .model_types import ModelType, validate_model_type"),
+            ("model_types", "from .models_types import ModelType, validate_model_type"),
             ("ml_models", "from ..ml_models import get_model_path, load_all_models"),
             ("config", "from .config import APIConfig"),
             ("customer_data", "from .customer_data import CustomerData"),
@@ -80,7 +80,7 @@ class SetupValidator:
         logger.info("Validating model types...")
         
         try:
-            from .models_types import ModelType, normalize_model_type, validate_model_type
+            from .models_types import normalize_model_type, validate_model_type
             
             # Test normalization
             test_cases = [
