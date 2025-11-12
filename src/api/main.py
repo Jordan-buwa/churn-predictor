@@ -23,7 +23,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def validate_startup():
     try:
         logger.info("Running startup validation...")
