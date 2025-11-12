@@ -180,7 +180,7 @@ if __name__ == "__main__":
     )
 @app.on_event("startup")
 def on_startup():
-    # Skip DB initialization in test environment to avoid external deps
+    # Skip DB initialization in test environment to avoid external de
     if os.getenv("ENVIRONMENT", "development") == "test":
         return
     Base.metadata.create_all(bind=engine)
