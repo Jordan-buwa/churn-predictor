@@ -261,7 +261,7 @@ jobs:
           path: training-image.tar.gz
           retention-days: 1
 
-  # Deploy only on main when changes detected
+  # Deploy only on main when changes detected 
   deploy:
     runs-on: ubuntu-latest
     needs: [detect-changes, test-build-api, test-build-data-pipeline, test-build-training]
