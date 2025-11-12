@@ -82,7 +82,7 @@ class DataIngestion:
 
         return df
 
-    # Source-specific Loaders
+    # Source specific Loaders
 
     def _load_csv(self) -> pd.DataFrame:
         cfg = self.config["csv"]
