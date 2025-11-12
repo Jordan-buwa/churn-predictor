@@ -21,7 +21,6 @@ validate_env() {
         "AZURE_SUBSCRIPTION_ID"
         "POSTGRES_HOST" 
         "POSTGRES_PASSWORD" 
-        "AZURE_STORAGE_CONNECTION_STRING" 
         "AUTH_SECRET"
     )
     
@@ -154,6 +153,7 @@ deploy_containers() {
         --resource-group "$RESOURCE_GROUP" \
         --name "churn-api-$ENVIRONMENT" \
         --image "$api_image" \
+        --os-type Linux \
         --cpu 1 \
         --memory 2 \
         --ports 8000 \
@@ -188,6 +188,7 @@ deploy_containers() {
         --resource-group "$RESOURCE_GROUP" \
         --name "churn-data-pipeline-$ENVIRONMENT" \
         --image "$data_pipeline_image" \
+        --os-type Linux \
         --cpu 1 \
         --memory 1.5 \
         --secure-environment-variables \
@@ -222,6 +223,7 @@ deploy_containers() {
         --resource-group "$RESOURCE_GROUP" \
         --name "churn-training-$ENVIRONMENT" \
         --image "$training_image" \
+        --os-type Linux \
         --cpu 2 \
         --memory 4 \
         --secure-environment-variables $TRAINING_SECURE_ENV_VARS \
