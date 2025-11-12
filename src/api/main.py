@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
 from src.api.db import Base, engine
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler

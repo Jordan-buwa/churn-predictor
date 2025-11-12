@@ -29,15 +29,37 @@
             --transition: all 0.3s ease;
         }
         
+        html, body {
+            height: 100%;
+        }
+        
         body {
+            display: flex;
+            flex-direction: column;
             padding-top: 76px;
             background-color: #f5f7fb;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--dark);
             line-height: 1.6;
+            min-height: 100vh;
         }
         
-        /* Enhanced Navbar */
+        .main-content {
+            flex: 1 0 auto;
+            width: 100%;
+        }
+        
+        .footer {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--secondary), #2a1b7a);
+            color: white;
+            padding: 2rem 0;
+            margin-top: auto; /* This pushes the footer to the bottom */
+            border-top-left-radius: var(--radius);
+            border-top-right-radius: var(--radius);
+        }
+        
+        /* The rest of your CSS remains the same */
         .navbar {
             background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
             box-shadow: var(--shadow);
@@ -89,12 +111,10 @@
             box-shadow: none;
         }
         
-        /* Enhanced Container */
         .container {
             max-width: 1200px;
         }
         
-        /* Card Enhancements */
         .card {
             border: none;
             border-radius: var(--radius);
@@ -116,7 +136,6 @@
             padding: 1rem 1.25rem;
         }
         
-        /* Button Enhancements */
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border: none;
@@ -131,7 +150,6 @@
             box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
         }
         
-        /* Form Enhancements */
         .form-control {
             border-radius: var(--radius);
             border: 1px solid #e1e5eb;
@@ -144,7 +162,6 @@
             box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
         }
         
-        /* Table Enhancements */
         .table {
             border-radius: var(--radius);
             overflow: hidden;
@@ -163,17 +180,6 @@
             border-color: #e9ecef;
         }
         
-        /* Footer */
-        .footer {
-            background: linear-gradient(135deg, var(--secondary), #2a1b7a);
-            color: white;
-            padding: 2rem 0;
-            margin-top: 3rem;
-            border-top-left-radius: var(--radius);
-            border-top-right-radius: var(--radius);
-        }
-        
-        /* Custom Shapes */
         .shape-divider {
             position: relative;
             height: 60px;
@@ -191,7 +197,6 @@
             clip-path: polygon(0 0, 100% 0, 100% 50%, 0 100%);
         }
         
-        /* Custom Badge */
         .badge-custom {
             background: linear-gradient(135deg, var(--accent), #3a86ff);
             color: white;
@@ -200,7 +205,6 @@
             font-weight: 500;
         }
         
-        /* Animation for alerts */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -212,7 +216,6 @@
             border: none;
         }
         
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             body {
                 padding-top: 66px;
@@ -267,12 +270,14 @@
 <!-- Shape Divider for visual interest -->
 <div class="shape-divider"></div>
 
-<div class="container mt-4">
-    {% block content %}{% endblock %}
+<div class="main-content">
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
 </div>
 
 <!-- Footer -->
-<footer class="footer mt-5">
+<footer class="footer">
     <div class="container">
         <div class="row">
             <div class="col-md-6">
