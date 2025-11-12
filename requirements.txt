@@ -7,6 +7,10 @@ scipy
 joblib
 evidently
 
+# monitoring using grafana
+prometheus-client
+flask
+
 # ML Frameworks
 xgboost
 torch
