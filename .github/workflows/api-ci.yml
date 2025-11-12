@@ -404,7 +404,7 @@ jobs:
     needs: [test-build-api, test-build-data-pipeline, test-build-training]
     if: |
       always() && 
-      needs.detect-changes.outputs.deploy == 'true' &&
+      (needs.test-build-api.result == 'success' || needs.test-build-api.result == 'skipped') &&
       (needs.test-build-data-pipeline.result == 'success' || needs.test-build-data-pipeline.result == 'skipped') &&
       (needs.test-build-training.result == 'success' || needs.test-build-training.result == 'skipped')
     environment: production
