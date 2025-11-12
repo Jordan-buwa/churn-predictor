@@ -1,4 +1,3 @@
-#!/bin/bash
 set -e
 
 # Configuration for Account 1 (where we deploy)
@@ -47,7 +46,7 @@ deploy_to_account1() {
         --tags "environment=$ENVIRONMENT" "project=churn-prediction" \
         --output none
     
-    # Deploy API
+    # Deploy API with secure environment variables
     log "Deploying API container..."
     az container create \
         --resource-group "$RESOURCE_GROUP" \
@@ -57,20 +56,20 @@ deploy_to_account1() {
         --memory 2 \
         --ports 8000 \
         --ip-address Public \
+        --secure-environment-variables \
+            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            AUTH_SECRET="$AUTH_SECRET" \
+            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
         --environment-variables \
             POSTGRES_HOST="$POSTGRES_HOST" \
-            POSTGRES_PORT="$POSTGRES_PORT" \
-            POSTGRES_DB="$POSTGRES_DB_NAME" \
-            POSTGRES_USER="$POSTGRES_DB_USER" \
-            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
-            AZURE_ML_SUBSCRIPTION_ID="$AZURE2_SUBSCRIPTION_ID" \
-            AZURE_ML_RESOURCE_GROUP="$AZURE2_RESOURCE_GROUP" \
-            AZURE_ML_WORKSPACE_NAME="$AZURE2_ML_WORKSPACE_NAME" \
-            AUTH_SECRET="$AUTH_SECRET" \
+            POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
+            POSTGRES_DB="${POSTGRES_DB_NAME:-churn_db}" \
+            POSTGRES_USER="${POSTGRES_DB_USER:-postgres}" \
+            AZURE_ML_SUBSCRIPTION_ID="${AZURE2_SUBSCRIPTION_ID}" \
+            AZURE_ML_RESOURCE_GROUP="${AZURE2_RESOURCE_GROUP}" \
+            AZURE_ML_WORKSPACE_NAME="${AZURE2_ML_WORKSPACE_NAME}" \
             ENVIRONMENT="$ENVIRONMENT" \
-            LOG_LEVEL="$LOG_LEVEL" \
-        --secrets \
-            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            LOG_LEVEL="${LOG_LEVEL:-INFO}" \
         --dns-name-label "churn-api-${ENVIRONMENT}-$(date +%s)" \
         --restart-policy Always \
         --output table
@@ -83,16 +82,16 @@ deploy_to_account1() {
         --image "$data_pipeline_image" \
         --cpu 1 \
         --memory 1.5 \
+        --secure-environment-variables \
+            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
         --environment-variables \
             POSTGRES_HOST="$POSTGRES_HOST" \
-            POSTGRES_PORT="$POSTGRES_PORT" \
-            POSTGRES_DB="$POSTGRES_DB_NAME" \
-            POSTGRES_USER="$POSTGRES_DB_USER" \
-            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
+            POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
+            POSTGRES_DB="${POSTGRES_DB_NAME:-churn_db}" \
+            POSTGRES_USER="${POSTGRES_DB_USER:-postgres}" \
             ENVIRONMENT="$ENVIRONMENT" \
-            LOG_LEVEL="$LOG_LEVEL" \
-        --secrets \
-            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            LOG_LEVEL="${LOG_LEVEL:-INFO}" \
         --restart-policy Never \
         --output table
     
@@ -104,20 +103,20 @@ deploy_to_account1() {
         --image "$training_image" \
         --cpu 2 \
         --memory 4 \
+        --secure-environment-variables \
+            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
         --environment-variables \
             POSTGRES_HOST="$POSTGRES_HOST" \
-            POSTGRES_PORT="$POSTGRES_PORT" \
-            POSTGRES_DB="$POSTGRES_DB_NAME" \
-            POSTGRES_USER="$POSTGRES_DB_USER" \
-            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
-            AZURE_ML_SUBSCRIPTION_ID="$AZURE2_SUBSCRIPTION_ID" \
-            AZURE_ML_RESOURCE_GROUP="$AZURE2_RESOURCE_GROUP" \
-            AZURE_ML_WORKSPACE_NAME="$AZURE2_ML_WORKSPACE_NAME" \
-            MLFLOW_TRACKING_URI="$MLFLOW_TRACKING_URI" \
+            POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
+            POSTGRES_DB="${POSTGRES_DB_NAME:-churn_db}" \
+            POSTGRES_USER="${POSTGRES_DB_USER:-postgres}" \
+            AZURE_ML_SUBSCRIPTION_ID="${AZURE2_SUBSCRIPTION_ID}" \
+            AZURE_ML_RESOURCE_GROUP="${AZURE2_RESOURCE_GROUP}" \
+            AZURE_ML_WORKSPACE_NAME="${AZURE2_ML_WORKSPACE_NAME}" \
+            MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI}" \
             ENVIRONMENT="$ENVIRONMENT" \
-            LOG_LEVEL="$LOG_LEVEL" \
-        --secrets \
-            POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            LOG_LEVEL="${LOG_LEVEL:-INFO}" \
         --restart-policy Never \
         --output table
 }
@@ -133,7 +132,7 @@ main() {
     deploy_to_account1 "$1" "$2" "$3"
     
     log "✅ Deployment completed to Account 1"
-    log "📊 Azure ML tracking in Account 2: $AZURE2_ML_WORKSPACE_NAME"
+    log "📊 Azure ML tracking in Account 2: ${AZURE2_ML_WORKSPACE_NAME}"
     log "🌐 API URL: churn-api-${ENVIRONMENT}-*.${LOCATION}.azurecontainer.io:8000"
 }
 
