@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 RESOURCE_GROUP="churn-prediction-rg"
-LOCATION="francecentral"
+LOCATION="eastus"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 
 log() {
@@ -21,6 +21,7 @@ validate_env() {
         "AZURE_SUBSCRIPTION_ID"
         "POSTGRES_HOST" 
         "POSTGRES_PASSWORD" 
+        "AZURE_STORAGE_CONNECTION_STRING" 
         "AUTH_SECRET"
     )
     
@@ -35,7 +36,7 @@ validate_env() {
         log "✅ Account 2 (ML) configuration detected"
         
         # Check if we have service principal credentials for Account 2
-        if [[ -n "${AZURE_CLIENT_ID}" ]] && [[ -n "${AZURE_CLIENT_SECRET}" ]] && [[ -n "${AZURE_TENANT_ID}" ]]; then
+        if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
             log "✅ Account 2 service principal credentials provided"
         else
             log "⚠️  Account 2 configured but no service principal credentials. Containers will use DefaultAzureCredential."
@@ -68,6 +69,37 @@ verify_azure_access() {
     log "✅ Using subscription: $CURRENT_SUB (Tenant: ${CURRENT_TENANT:0:8}...)"
 }
 
+# Register required Azure resource providers
+register_providers() {
+    log "Checking Azure resource providers..."
+    
+    # Check if Microsoft.ContainerInstance is registered
+    PROVIDER_STATE=$(az provider show --namespace Microsoft.ContainerInstance --query "registrationState" -o tsv 2>/dev/null || echo "NotRegistered")
+    
+    if [[ "$PROVIDER_STATE" != "Registered" ]]; then
+        log "⚠️  Microsoft.ContainerInstance provider not registered"
+        log "Registering Microsoft.ContainerInstance provider (this may take 1-2 minutes)..."
+        
+        az provider register --namespace Microsoft.ContainerInstance --output none
+        
+        # Wait for registration to complete
+        log "Waiting for provider registration..."
+        for i in {1..30}; do
+            PROVIDER_STATE=$(az provider show --namespace Microsoft.ContainerInstance --query "registrationState" -o tsv 2>/dev/null)
+            if [[ "$PROVIDER_STATE" == "Registered" ]]; then
+                log "✅ Microsoft.ContainerInstance provider registered successfully"
+                return 0
+            fi
+            echo -n "."
+            sleep 5
+        done
+        
+        error "Provider registration timed out. Please run manually: az provider register --namespace Microsoft.ContainerInstance"
+    else
+        log "✅ Microsoft.ContainerInstance provider already registered"
+    fi
+}
+
 # Deploy containers
 deploy_containers() {
     local api_image="$1"
@@ -98,11 +130,11 @@ deploy_containers() {
     done
     
     # Prepare secure environment variables for Account 2 access
-    SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AUTH_SECRET=$AUTH_SECRET"
+    SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AUTH_SECRET=$AUTH_SECRET AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
     
     # Add Account 2 service principal credentials if provided
-    if [[ -n "${AZURE_CLIENT_ID}" ]] && [[ -n "${AZURE_CLIENT_SECRET}" ]] && [[ -n "${AZURE_TENANT_ID}" ]]; then
-        SECURE_ENV_VARS="$SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET AZURE_TENANT_ID=$AZURE_TENANT_ID"
+    if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
+        SECURE_ENV_VARS="$SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE2_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE2_CLIENT_SECRET AZURE_TENANT_ID=$AZURE2_TENANT_ID"
         log "Adding Account 2 service principal credentials to containers"
     fi
     
@@ -150,6 +182,7 @@ deploy_containers() {
         --memory 1.5 \
         --secure-environment-variables \
             POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
         --environment-variables \
             POSTGRES_HOST="$POSTGRES_HOST" \
             POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
@@ -163,9 +196,9 @@ deploy_containers() {
     log "✅ Data Pipeline deployed (on-demand)"
     
     # Prepare secure env vars for training (includes Account 2 credentials)
-    TRAINING_SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
-    if [[ -n "${AZURE_CLIENT_ID}" ]] && [[ -n "${AZURE_CLIENT_SECRET}" ]] && [[ -n "${AZURE_TENANT_ID}" ]]; then
-        TRAINING_SECURE_ENV_VARS="$TRAINING_SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET AZURE_TENANT_ID=$AZURE_TENANT_ID"
+    TRAINING_SECURE_ENV_VARS="POSTGRES_PASSWORD=$POSTGRES_PASSWORD AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"
+    if [[ -n "${AZURE2_CLIENT_ID}" ]] && [[ -n "${AZURE2_CLIENT_SECRET}" ]] && [[ -n "${AZURE2_TENANT_ID}" ]]; then
+        TRAINING_SECURE_ENV_VARS="$TRAINING_SECURE_ENV_VARS AZURE_CLIENT_ID=$AZURE2_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE2_CLIENT_SECRET AZURE_TENANT_ID=$AZURE2_TENANT_ID"
     fi
     
     # Deploy Training (on-demand)
@@ -205,6 +238,9 @@ main() {
     # Verify Azure access
     verify_azure_access
     
+    # Register required providers
+    register_providers
+    
     # Deploy containers
     deploy_containers "$1" "$2" "$3"
     
@@ -218,7 +254,7 @@ main() {
     
     if [[ -n "${AZURE2_ML_WORKSPACE_NAME:-}" ]]; then
         log "📈 ML Workspace (Account 2): $AZURE2_ML_WORKSPACE_NAME"
-        if [[ -n "${AZURE_CLIENT_ID:-}" ]]; then
+        if [[ -n "${AZURE2_CLIENT_ID:-}" ]]; then
             log "   Authentication: Service Principal"
         else
             log "   Authentication: DefaultAzureCredential"
