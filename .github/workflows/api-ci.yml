@@ -1,20 +1,26 @@
-name: Churn Prediction CI/CD
-
+name: CI/CD TEST Pipeline
+run-name: CI/CD Pipeline - by  @${{ github.actor }}
 on:
   push:
+<<<<<<< HEAD
     branches: 
       - main
       - dev/api
       - dev/data-pipeline
       - dev/training
+=======
+    branches: ["main"]
+    paths: 
+      - '**/*.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+>>>>>>> 7ef7cc2a246c6025c2d5466e1b7e75321e1a1a07
   pull_request:
-    branches: [ main ]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
+    branches: ["jordan_branch"]
+  workflow_dispatch:
 
 jobs:
+<<<<<<< HEAD
   # Determine which services to build based on branch or changed files
   detect-changes:
     runs-on: ubuntu-latest
@@ -102,12 +108,20 @@ jobs:
           sudo docker system prune -a -f
           sudo rm -rf /usr/share/dotnet /opt/ghc
           sudo apt-get clean
+=======
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+>>>>>>> 7ef7cc2a246c6025c2d5466e1b7e75321e1a1a07
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
+<<<<<<< HEAD
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -368,3 +382,12 @@ jobs:
           if [ -f ./artifacts/training-image/training-image.tar.gz ]; then
             echo "- ✅ Training" >> $GITHUB_STEP_SUMMARY
           fi
+=======
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
+>>>>>>> 7ef7cc2a246c6025c2d5466e1b7e75321e1a1a07

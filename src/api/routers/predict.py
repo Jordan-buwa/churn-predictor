@@ -1,7 +1,9 @@
-from fastapi import HTTPException, APIRouter, Body, status
+from fastapi import HTTPException, APIRouter, Body, status, Depends
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
+from src.api.authenticator import get_current_active_user
+from src.api.db import UserCreate, UserRead, UserRole
 from src.api.utils.database import get_db_connection
 from src.data_pipeline.preprocess import ProductionPreprocessor
 from typing import Dict, Any
@@ -9,7 +11,6 @@ import os
 import joblib
 import json
 import logging
-
 from src.api.utils.config import APIConfig, get_model_path, get_allowed_model_types
 from src.api.utils.response_models import PredictionResponse
 from src.api.utils.error_handlers import (
@@ -23,7 +24,8 @@ if os.getenv("ENVIRONMENT") == "test":
     from unittest.mock import MagicMock
     current_active_user = MagicMock(id="test-user")
 else:
-    from src.api.routers.auth import current_active_user
+    from src.api.authenticator import current_active_user
+
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)
@@ -62,14 +64,13 @@ def load_model_by_type(model_type: str):
     return model
 
 def map_dropdowns(payload: dict) -> dict:
-    # PRIZM
+    # --- PRIZM ---
     prizm = payload.pop("prizm_cluster", None)
-    if prizm:
-        payload["prizmrur"] = 1 if prizm == "rural" else 0
-        payload["prizmub"]  = 1 if prizm == "urban" else 0
-        payload["prizmtwn"] = 1 if prizm == "town"  else 0
+    payload["prizmrur"] = 1 if prizm == "rural" else 0
+    payload["prizmub"]  = 1 if prizm == "urban" else 0
+    payload["prizmtwn"] = 1 if prizm == "town"  else 0
 
-    # OCCUPATION
+    # --- OCCUPATION ---
     occ = payload.pop("occupation", None)
     occ_map = {
         "professional": "occprof",
@@ -80,16 +81,31 @@ def map_dropdowns(payload: dict) -> dict:
         "retired": "occret",
         "self-employed": "occself"
     }
-    for k in occ_map.values():
-        payload[k] = 0
+    # Initialize all to 0
+    for col in occ_map.values():
+        payload[col] = 0
     if occ and occ in occ_map:
         payload[occ_map[occ]] = 1
 
-    # MARITAL
+    # --- MARITAL ---
     marital = payload.pop("marital_status", "unknown")
     payload["marryyes"] = 1 if marital == "married" else 0
-    payload["marryun"] = 1 if marital == "unmarried" else 0
+    payload["marryun"]  = 1 if marital == "unmarried" else 0
 
+    return payload
+
+import numpy as np
+
+def null_to_nan(payload: dict) -> dict:
+    """
+    Recursively convert JSON `null` (Python `None`) to `np.nan`.
+    Leaves numbers/strings untouched.
+    """
+    for key, value in payload.items():
+        if value is None:
+            payload[key] = np.nan
+        elif isinstance(value, dict):
+            null_to_nan(value)  # in case of nested payloads
     return payload
 
 @router.post("/{model_type}", response_model=PredictionResponse)
@@ -97,12 +113,28 @@ def predict_from_payload(
     model_type: str,
     payload: Dict[str, Any] = Body(..., example={
         "revenue": 45.3, "mou": 120.5, "months": 12, "credita": "A",
-    })
+    }),
+    current_user = Depends(get_current_active_user)
 ):
+
     """
     Accept raw customer data → predict churn.
     """
+    
+    # Adding role-based access control
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not have access to prediction services"
+        )
+    
+    # Log prediction request for auditing
+    logger.info(f"Prediction request - User: {current_user.username}, Model: {model_type}")
+    
+
     payload = map_dropdowns(payload)
+    payload = null_to_nan(payload)
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -147,7 +179,7 @@ def predict_from_payload(
         df_processed = processor.preprocess(df)
         feature_names = processor.get_feature_names()
         features_dict = df_processed[feature_names].iloc[0].to_dict()
-        X = [list(features_dict.values())]
+        X = np.array([list(features_dict.values())], dtype=np.float32)
 
         # Load model & predict
         model_path = get_latest_model(model_type)
@@ -185,8 +217,16 @@ def predict_from_payload(
 def predict_from_db_customer(
     model_type: str,
     customer_id: str,
+    current_user = Depends(get_current_active_user)
 ):
     """Predict churn for a specific customer from database."""
+
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not give you access to database"
+        )
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -234,7 +274,7 @@ def predict_from_db_customer(
                 "model_path": model_path,
                 "customer_id": customer_id,
                 "feature_count": len(features_dict),
-                "preprocessing_applied": False  # Data already preprocessed
+                "preprocessing_applied": False 
             }
 
             return PredictionResponse(
@@ -248,13 +288,23 @@ def predict_from_db_customer(
             handle_data_error(f"customer_id: {customer_id}", e)
         else:
             handle_model_error(model_type, e)
+
 @router.get("/{model_type}/batch/{batch_id}", response_model=PredictionResponse)
 def predict_from_db_batch(
     model_type: str,
     batch_id: str,
     limit: int = 100,
+    current_user = Depends(get_current_active_user)
 ):
     """Return predictions for the *first N* records of a batch."""
+
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not give you access to database"
+        )
+    
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -301,7 +351,7 @@ def predict_from_db_batch(
             "predictions": results,
             "model_path": model_path,
             "prediction_count": len(results),
-            "preprocessing_applied": False  # Data already preprocessed
+            "preprocessing_applied": False  
         }
 
         return PredictionResponse(

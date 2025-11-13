@@ -33,28 +33,140 @@
     </div>
 </div>
 
+<div id="jobStatus" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-header">Training Status</div>
+        <div class="card-body">
+            <p><strong>Job ID:</strong> <span id="jobId"></span></p>
+            <p><strong>Status:</strong> <span id="statusText"></span></p>
+            <div class="progress mb-3">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <button id="checkStatusBtn" class="btn btn-info btn-sm">Check Status</button>
+            <button id="viewJobsBtn" class="btn btn-secondary btn-sm">View All Jobs</button>
+        </div>
+    </div>
+</div>
+
 <pre id="response" class="mt-4 bg-light p-3 border rounded"></pre>
 {% endblock %}
 
 {% block javascript %}
+{{ super() }}
 <script>
     document.getElementById('trainForm').addEventListener('submit', async e => {
         e.preventDefault();
         const fd = new FormData(e.target);
         const payload = Object.fromEntries(fd);
+        
+        // Convert checkbox values
         payload.retrain = payload.retrain === 'on';
-        payload.use_cv   = payload.use_cv   === 'on';
-        if (payload.hyperparameters) {
-            try { payload.hyperparameters = JSON.parse(payload.hyperparameters); }
-            catch (_) {}
+        payload.use_cv = payload.use_cv === 'on';
+        
+        // Parse hyperparameters if provided
+        if (payload.hyperparameters && payload.hyperparameters.trim()) {
+            try { 
+                payload.hyperparameters = JSON.parse(payload.hyperparameters); 
+            } catch (e) {
+                alert('Invalid JSON in hyperparameters field');
+                return;
+            }
+        } else {
+            payload.hyperparameters = null;
         }
-        const res = await fetch('/train', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+
+        try {
+            const res = await fetch('/train', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || `HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            
+            // Show job status section if job was started
+            if (data.job_id) {
+                document.getElementById('jobId').textContent = data.job_id;
+                document.getElementById('statusText').textContent = 'started';
+                document.getElementById('progressBar').style.width = '10%';
+                document.getElementById('jobStatus').style.display = 'block';
+                
+                // Store current job ID for status checkin
+                window.currentJobId = data.job_id;
+            }
+            
+        } catch (error) {
+            document.getElementById('response').textContent = `Error: ${error.message}`;
+            console.error('Training request failed:', error);
+        }
+    });
+
+    // Check status button
+    document.getElementById('checkStatusBtn').addEventListener('click', async () => {
+        if (!window.currentJobId) {
+            alert('No active job to check');
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/train/status/${window.currentJobId}`);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            document.getElementById('statusText').textContent = data.data.status;
+            
+            // Update progress bar based on status
+            const progressBar = document.getElementById('progressBar');
+            switch(data.data.status) {
+                case 'running':
+                    progressBar.style.width = '50%';
+                    progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+                    break;
+                case 'completed':
+                    progressBar.style.width = '100%';
+                    progressBar.className = 'progress-bar bg-success';
+                    break;
+                case 'failed':
+                    progressBar.style.width = '100%';
+                    progressBar.className = 'progress-bar bg-danger';
+                    break;
+                default:
+                    progressBar.style.width = '10%';
+                    progressBar.className = 'progress-bar';
+            }
+            
+            // Update response display
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            
+        } catch (error) {
+            console.error('Status check failed:', error);
+            alert(`Failed to check status: ${error.message}`);
+        }
+    });
+
+    // View all jobs button
+    document.getElementById('viewJobsBtn').addEventListener('click', async () => {
+        try {
+            const res = await fetch('/train/jobs?limit=10');
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            
+        } catch (error) {
+            console.error('Failed to fetch jobs:', error);
+            alert(`Failed to fetch jobs: ${error.message}`);
+        }
     });
 </script>
 {% endblock %}

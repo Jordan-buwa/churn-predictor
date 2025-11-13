@@ -5,7 +5,6 @@ from src.data_pipeline.ingest import DataIngestion
 from src.data_pipeline.preprocess import DataPreprocessor, save_enhanced_preprocessing_artifacts
 from src.data_pipeline.validate_after_preprocess import validate_dataframe
 
-
 def fetch_preprocessed():
     ingestion = DataIngestion("config/config_ingest.yaml")
     df_raw = ingestion.load_data()

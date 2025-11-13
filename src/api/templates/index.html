@@ -1,14 +1,120 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Home - Churn Prediction API{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <h1 class="card-title">Welcome to Churn Prediction API</h1>
-        <p>Use the navigation bar to interact with the endpoints.</p>
-        <p><strong>Version:</strong> 1.0.0 |
-           <strong>Environment:</strong> {{ request.app.state.environment }}</p>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-database fa-3x mb-3"></i>
+                                <h5>Data Ingestion</h5>
+                                <p>Upload and manage your datasets</p>
+                                <a href="/ingest" class="btn btn-light btn-sm">Go to Ingestion</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-search fa-3x mb-3"></i>
+                                <h5>Predictions</h5>
+                                <p>Make churn predictions</p>
+                                <a href="/predict" class="btn btn-light btn-sm">Make Predictions</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <i class="fas fa-cogs fa-3x mb-3"></i>
+                                <h5>Training</h5>
+                                <p>Train ML models</p>
+                                <a href="/train" class="btn btn-dark btn-sm">Train Models</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <h5>Metrics</h5>
+                                <p>View model performance</p>
+                                <a href="/metrics" class="btn btn-light btn-sm">View Metrics</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Welcome to Churn Prediction API</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>You are successfully logged in. Use the navigation above to access different features of the application.</p>
+                                <p><strong>Version:</strong> 1.0.0 | <strong>Environment:</strong> {{ request.app.state.environment }}</p>
+                                
+                                <div id="userInfo" class="mt-3 p-3 bg-light rounded">
+                                    <h6><i class="fas fa-user me-2"></i>User Information:</h6>
+                                    <div id="userDetails">Loading user information...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+<script>
+// Load user information on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const userData = await response.json();
+            document.getElementById('userDetails').innerHTML = `
+                <strong>Username:</strong> ${userData.username}<br>
+                <strong>Email:</strong> ${userData.email}<br>
+                <strong>Role:</strong> ${userData.role}<br>
+                <strong>Phone:</strong> ${userData.phone || 'Not provided'}
+            `;
+        } else {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+    }
+});
+</script>
 {% endblock %}

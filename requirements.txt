@@ -7,6 +7,10 @@ scipy
 joblib
 evidently
 
+# monitoring using grafana
+prometheus-client
+flask
+
 # ML Frameworks
 xgboost
 torch
@@ -28,7 +32,9 @@ opencensus-ext-logging
 # Database
 psycopg2-binary
 sqlalchemy
+sqlmodel
 alembic
+
 
 # ML Tracking & Experimentation
 mlflow
@@ -46,10 +52,10 @@ requests
 httpx
 
 # Development & Testing
-#pytest
-#pytest-asyncio
-#requests-mock
-#pytest-cov
+pytest
+pytest-asyncio
+requests-mock
+pytest-cov
 setuptools
 
 azure-ai-ml 
