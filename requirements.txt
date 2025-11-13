@@ -32,7 +32,9 @@ opencensus-ext-logging
 # Database
 psycopg2-binary
 sqlalchemy
+sqlmodel
 alembic
+
 
 # ML Tracking & Experimentation
 mlflow
