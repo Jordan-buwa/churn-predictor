@@ -1,0 +1,35 @@
+name: Test Airflow DAGs
+
+on:
+  push:
+    branches:
+      - '*'     
+
+   
+     
+  pull_request:
+    branches:
+      - '*'     
+        
+   
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+        ports: [5432:5432]     
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r airflow/requirements.txt 'pytest==6.2.5'
+      - run: PYTHONPATH=. pytest airflow/tests/ -v
