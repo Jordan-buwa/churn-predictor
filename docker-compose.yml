@@ -24,7 +24,7 @@ services:
   trainer:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: docker/api/Dockerfile
     command: python retrain.py
     environment:
       - DATABASE_URL=${DATABASE_URL}
