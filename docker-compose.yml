@@ -41,4 +41,4 @@ services:
       - AZURE_TENANT_ID=${AZURE_TENANT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
     deploy:
-      replicas: 0   
+      replicas: 1   
