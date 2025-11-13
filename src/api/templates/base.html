@@ -229,6 +229,7 @@
 </head>
 <body>
 
+<!-- Updated Navbar Section -->
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container-fluid">
         <a class="navbar-brand" href="/">
@@ -253,14 +254,39 @@
                 <li class="nav-item"><a class="nav-link" href="/predict"><i class="fas fa-search me-1"></i> Predict</a></li>
                 <li class="nav-item"><a class="nav-link" href="/train"><i class="fas fa-cogs me-1"></i> Train</a></li>
                 <li class="nav-item"><a class="nav-link" href="/metrics"><i class="fas fa-chart-bar me-1"></i> Metrics</a></li>
-               <!-- <li class="nav-item"><a class="nav-link" href="/data_view"><i class="fas fa-table me-1"></i> Data View</a></li> -->
                 <li class="nav-item"><a class="nav-link" href="/health-ui"><i class="fas fa-heartbeat me-1"></i> Health</a></li>
-            </ul></div>
-            <div class="d-flex">
-                <span class="badge badge-custom">
+            </ul>
+            
+            <div class="d-flex align-items-center">
+                <!-- User status indicator -->
+                <span class="badge badge-custom me-3" id="userStatus">
                     <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
-                    System Online
+                    <span id="statusText">System Online</span>
                 </span>
+                
+                <!-- Authentication Links -->
+                <div class="nav-auth-links" id="authLinks">
+                    <a href="/auth/login" class="btn btn-outline-light btn-sm me-2">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </a>
+                    <a href="/auth/register" class="btn btn-light btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>Register
+                    </a>
+                </div>
+                
+                <!-- User Menu (hidden by default) -->
+                <div class="dropdown d-none" id="userMenu">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle me-1"></i>
+                        <span id="usernameDisplay">User</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="/auth/me"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -301,6 +327,82 @@
         crossorigin="anonymous"></script>
 
 {% block javascript %}
+<script>
+    // Check authentication status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuthStatus();
+    });
+
+    // Function to check if user is authenticated
+    async function checkAuthStatus() {
+        const token = localStorage.getItem('access_token');
+        const authLinks = document.getElementById('authLinks');
+        const userMenu = document.getElementById('userMenu');
+        const userStatus = document.getElementById('userStatus');
+        const statusText = document.getElementById('statusText');
+
+        if (!token) {
+            // User is not logged in
+            authLinks.classList.remove('d-none');
+            userMenu.classList.add('d-none');
+            statusText.textContent = 'System Online';
+            return;
+        }
+
+        try {
+            // Verify token is valid
+            const response = await fetch('/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                
+                // User is logged in
+                authLinks.classList.add('d-none');
+                userMenu.classList.remove('d-none');
+                document.getElementById('usernameDisplay').textContent = userData.username;
+                statusText.textContent = `Logged in as ${userData.username}`;
+                
+                // Update user status badge color
+                userStatus.style.background = 'linear-gradient(135deg, var(--success), #2e7d32)';
+            } else {
+                // Token is invalid
+                localStorage.removeItem('access_token');
+                authLinks.classList.remove('d-none');
+                userMenu.classList.add('d-none');
+                statusText.textContent = 'System Online';
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            localStorage.removeItem('access_token');
+            authLinks.classList.remove('d-none');
+            userMenu.classList.add('d-none');
+            statusText.textContent = 'System Online';
+        }
+    }
+
+    // Logout functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('access_token');
+                window.location.href = '/';
+            });
+        }
+    });
+
+    // Update auth status when navigating between pages
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'access_token') {
+            checkAuthStatus();
+        }
+    });
+</script>
 {% endblock %}
 </body>
 </html>

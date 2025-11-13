@@ -25,7 +25,7 @@ if os.getenv("ENVIRONMENT") == "test":
     mock_user.id = "test-user"
     router = APIRouter(prefix="/train")
 else:
-    from src.api.routers.auth import current_active_user
+    from src.api.authenticator import current_active_user
     router = APIRouter(prefix="/train", dependencies=[Depends(current_active_user)])
 
 router = APIRouter(prefix="/train")
