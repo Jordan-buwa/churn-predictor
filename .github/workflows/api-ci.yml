@@ -1,53 +1,66 @@
-name: CI/CD TEST Pipeline
+name: CI/CD Test Pipeline
 run-name: CI/CD Pipeline - by @${{ github.actor }}
 
 on:
   push:
     branches: ["main"]
-    paths:
-      - "**/*.py"
-      - "requirements.txt"
-      - ".github/workflows/**"
-
+    paths: 
+      - '**/*.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
   pull_request:
     branches: ["main"]
-
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+      # Set up Docker Buildx (optional, recommended for multi-platform builds)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Install dependencies
+      # Build Docker image
+      - name: Build API Docker image
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          docker build -f docker/api/Dockerfile -t test-api .
 
+      # Run container (detached)
+      - name: Run API container
+        run: |
+          docker run -d --name test-api \
+            -e ENVIRONMENT=test \
+            -e POSTGRES_HOST=localhost \
+            -e POSTGRES_PORT=5432 \
+            -e POSTGRES_DB=test_db \
+            -e POSTGRES_USER=test_user \
+            -e POSTGRES_PASSWORD=test_password \
+            -e AUTH_SECRET=test-secret-key-for-testing \
+            -p 8000:8000 \
+            test-api
+
+      # Wait for container to start
+      - name: Wait for container
+        run: sleep 10
+
+      # Run API tests
       - name: Run API tests
-        env:
-          ENVIRONMENT: test
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          AUTH_SECRET: test-secret-key-for-testing
-          AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==
         run: |
-          echo "Running API tests..."
           if [ -d "tests/api" ]; then
-            pytest tests/api/ --cov=src/api -v || echo "⚠️ Tests not found or failed, continuing..."
+            docker exec test-api pytest tests/api/ --cov=src/api -v || echo "⚠️ Tests failed"
           elif [ -d "tests" ]; then
-            pytest tests/ --cov=src -v || echo "⚠️ Tests not found or failed, continuing..."
+            docker exec test-api pytest tests/ --cov=src -v || echo "⚠️ Tests failed"
           else
-            echo "⚠️ No tests directory found, skipping tests"
+            echo " No tests directory found, skipping tests"
           fi
+
+      # Cleanup container
+      - name: Cleanup
+        run: |
+          docker stop test-api
+          docker rm test-api
