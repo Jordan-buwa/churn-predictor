@@ -52,6 +52,7 @@
 {% endblock %}
 
 {% block javascript %}
+{{ super() }}
 <script>
     document.getElementById('trainForm').addEventListener('submit', async e => {
         e.preventDefault();

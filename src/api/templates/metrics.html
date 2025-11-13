@@ -24,6 +24,7 @@
 {% endblock %}
 
 {% block javascript %}
+{{ super() }}
 <script>
     document.getElementById('metricsForm').addEventListener('submit', async e => {
         e.preventDefault();
