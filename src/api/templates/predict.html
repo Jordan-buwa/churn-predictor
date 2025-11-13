@@ -29,7 +29,7 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label" title="Unique customer identifier">Customer ID</label>
-                        <input type="text" class="form-control" name="customer" placeholder="e.g. 1043968">
+                        <input type="text" class="form-control" name="customer_id" placeholder="e.g. 1043968">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" title="Number of months with the company">Tenure (months)</label>
@@ -43,7 +43,7 @@
 
                 <hr>
 
-                <!-- 2. USAGE -->
+                <!-- 2. USAGE & CALL BEHAVIOR -->
                 <h5>Usage & Call Behavior</h5>
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -115,7 +115,7 @@
 
                 <hr>
 
-                <!-- 3. BILLING -->
+                <!-- 3. BILLING & REVENUE -->
                 <h5>Billing & Revenue</h5>
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -178,6 +178,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Refurbished phone?">Refurbished</label>
                         <select class="form-select" name="refurb">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -185,6 +186,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Web-capable phone?">Web Capable</label>
                         <select class="form-select" name="webcap">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -207,6 +209,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Has children?">Children</label>
                         <select class="form-select" name="children">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -221,6 +224,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Owns truck?">Truck</label>
                         <select class="form-select" name="truck">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -228,6 +232,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Owns RV?">RV</label>
                         <select class="form-select" name="rv">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -235,6 +240,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Owns motorcycle?">Motorcycle</label>
                         <select class="form-select" name="mcycle">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -249,6 +255,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Credit rating A">Credit A</label>
                         <select class="form-select" name="credita">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -256,6 +263,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Credit rating AA">Credit AA</label>
                         <select class="form-select" name="creditaa">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -263,6 +271,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Has credit card?">Credit Card</label>
                         <select class="form-select" name="creditcd">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -288,6 +297,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Mail order buyer?">Mail Order</label>
                         <select class="form-select" name="mailord">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -295,6 +305,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Responded to mail?">Mail Response</label>
                         <select class="form-select" name="mailres">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -302,6 +313,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Travel-related?">Travel</label>
                         <select class="form-select" name="travel">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -309,6 +321,7 @@
                     <div class="col-md-3">
                         <label class="form-label" title="Owns PC?">PC Owner</label>
                         <select class="form-select" name="pcown">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -317,85 +330,72 @@
 
                 <hr>
 
-                <!-- 8. PRIZM CODES (One-Hot) -->
-                <h5>PRIZM Cluster (Select One)</h5>
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label" title="Rural">PRIZM Rural</label>
-                        <select class="form-select" name="prizmrur">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" title="Urban">PRIZM Urban</label>
-                        <select class="form-select" name="prizmub">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" title="Town">PRIZM Town</label>
-                        <select class="form-select" name="prizmtwn">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                </div>
-
-                <hr>
-
-                <!-- 9. OCCUPATION (One-Hot) -->
-                <h5>Occupation (Select One)</h5>
-                <div class="row g-3">
-                    {% set occs = ["occprof", "occcler", "occcrft", "occstud", "occhmkr", "occret", "occself"] %}
-                    {% for occ in occs %}
-                    <div class="col-md-3">
-                        <label class="form-label" title="{{ occ[3:] | replace('occ','') | title }}">{{ occ[3:] | title }}</label>
-                        <select class="form-select" name="{{ occ }}">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <hr>
-
-                <!-- 10. MARITAL & HOUSING -->
-                <h5>Marital & Housing</h5>
+                <!-- 8. PRIZM CLUSTER (Single Dropdown) -->
+                <h5>PRIZM Cluster</h5>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label" title="Married?">Married</label>
-                        <select class="form-select" name="marryyes">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
+                        <label class="form-label">PRIZM Cluster</label>
+                        <select class="form-select" name="prizm_cluster">
+                            <option value="">-- select --</option>
+                            <option value="rural">Rural</option>
+                            <option value="urban">Urban</option>
+                            <option value="town">Town</option>
                         </select>
                     </div>
+                </div>
+
+                <hr>
+
+                <!-- 9. OCCUPATION (Single Dropdown) -->
+                <h5>Occupation</h5>
+                <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label" title="Unmarried?">Unmarried</label>
-                        <select class="form-select" name="marryun">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
+                        <label class="form-label">Occupation</label>
+                        <select class="form-select" name="occupation">
+                            <option value="">-- select --</option>
+                            <option value="professional">Professional</option>
+                            <option value="clerical">Clerical</option>
+                            <option value="craft">Craft</option>
+                            <option value="student">Student</option>
+                            <option value="homemaker">Homemaker</option>
+                            <option value="retired">Retired</option>
+                            <option value="self-employed">Self-employed</option>
                         </select>
                     </div>
+                </div>
+
+                <hr>
+
+                <!-- 10. MARITAL STATUS (Single Dropdown) -->
+                <h5>Marital Status</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Marital Status</label>
+                        <select class="form-select" name="marital_status">
+                            <option value="unknown">Unknown</option>
+                            <option value="married">Married</option>
+                            <option value="unmarried">Unmarried</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- 11. HOUSING & NEW CELL -->
+                <h5>Housing & New Cell</h5>
+                <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label" title="Owns or rents home?">Own/Rent</label>
                         <select class="form-select" name="ownrent">
+                            <option value="">-- select --</option>
                             <option value="0">Rent</option>
                             <option value="1">Own</option>
                         </select>
                     </div>
-                </div>
-
-                <hr>
-
-                <!-- 11. NEW CELL & REFERRAL -->
-                <h5>New Cell & Referral</h5>
-                <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label" title="New cell: Yes">New Cell (Y)</label>
                         <select class="form-select" name="newcelly">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -403,13 +403,18 @@
                     <div class="col-md-4">
                         <label class="form-label" title="New cell: No">New Cell (N)</label>
                         <select class="form-select" name="newcelln">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="row g-3 mt-1">
                     <div class="col-md-4">
                         <label class="form-label" title="Referred by friend?">Referred</label>
                         <select class="form-select" name="refer">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -424,6 +429,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Promotional pricing applied?">Promo Pricing</label>
                         <select class="form-select" name="setprcm">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -435,6 +441,7 @@
                     <div class="col-md-4">
                         <label class="form-label" title="Retention call made?">Retention Call</label>
                         <select class="form-select" name="retcall">
+                            <option value="">-- select --</option>
                             <option value="0">No</option>
                             <option value="1">Yes</option>
                         </select>
@@ -444,7 +451,7 @@
                 <hr>
 
                 <!-- SUBMIT -->
-                <div class="d-grid">
+                <div class="d-grid mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">Predict Churn</button>
                 </div>
             </form>
@@ -465,22 +472,30 @@
         e.preventDefault();
         const fd = new FormData(e.target);
         const payload = Object.fromEntries(fd);
-        const model = payload.model_type; delete payload.model_type;
 
-        // Convert empty strings to null/0
+        // Extract model_type for URL, remove from payload
+        const model = payload.model_type;
+        delete payload.model_type;
+
+        // Convert empty strings to null
         for (let k in payload) {
             if (payload[k] === '') payload[k] = null;
         }
 
-        const res = await fetch(`/predict/${model}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        const pre = document.getElementById('response');
-        pre.style.display = 'block';
-        pre.textContent = JSON.stringify(data, null, 2);
+        try {
+            const res = await fetch(`/predict/${model}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            const pre = document.getElementById('response');
+            pre.style.display = 'block';
+            pre.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+            document.getElementById('response').textContent = 'Error: ' + err.message;
+            document.getElementById('response').style.display = 'block';
+        }
     });
 </script>
 {% endblock %}

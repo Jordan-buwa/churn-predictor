@@ -12,15 +12,388 @@
             <div class="card-header">Single Record Ingest</div>
             <div class="card-body">
                 <form id="singleForm">
-                    <div class="mb-3"><label class="form-label">Customer ID</label>
-                        <input type="text" class="form-control" name="customer_id" required></div>
-                    <div class="mb-3"><label class="form-label">Revenue</label>
-                        <input type="number" class="form-control" name="revenue" step="0.01"></div>
-                    <div class="mb-3"><label class="form-label">MOU</label>
-                        <input type="number" class="form-control" name="mou" step="0.01"></div>
-                    <div class="mb-3"><label class="form-label">Churn</label>
-                        <input type="number" class="form-control" name="churn"></div>
-                    <button type="submit" class="btn btn-primary">Ingest Single</button>
+                    <!-- 1. BASIC INFO -->
+                    <h6 class="mt-3 text-primary">Customer Info</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Customer ID</label>
+                            <input type="text" class="form-control" name="customer_id" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Tenure (months)</label>
+                            <input type="number" class="form-control" name="months" min="0" step="1">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Phones</label>
+                            <input type="number" class="form-control" name="phones" min="0" step="1">
+                        </div>
+                    </div>
+
+                    <!-- 2. USAGE & CALL BEHAVIOR -->
+                    <h6 class="mt-3 text-primary">Usage & Call Behavior</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">MOU</label>
+                            <input type="number" class="form-control" name="mou" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Out Calls</label>
+                            <input type="number" class="form-control" name="outcalls" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">In Calls</label>
+                            <input type="number" class="form-control" name="incalls" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Peak VCE</label>
+                            <input type="number" class="form-control" name="peakvce" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Off-Peak VCE</label>
+                            <input type="number" class="form-control" name="opeakvce" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Dropped VCE</label>
+                            <input type="number" class="form-control" name="dropvce" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Blocked VCE</label>
+                            <input type="number" class="form-control" name="blckvce" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Unanswered VCE</label>
+                            <input type="number" class="form-control" name="unansvce" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Three-Way</label>
+                            <input type="number" class="form-control" name="threeway" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Call Wait</label>
+                            <input type="number" class="form-control" name="callwait" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Call FWD</label>
+                            <input type="number" class="form-control" name="callfwdv" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Drop + Block</label>
+                            <input type="number" class="form-control" name="dropblk" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Cust Care</label>
+                            <input type="number" class="form-control" name="custcare" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">MOU Received</label>
+                            <input type="number" class="form-control" name="mourec" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- 3. BILLING & REVENUE -->
+                    <h6 class="mt-3 text-primary">Billing & Revenue</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Recurring Charge</label>
+                            <input type="number" class="form-control" name="recchrge" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Direct AS</label>
+                            <input type="number" class="form-control" name="directas" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Overage</label>
+                            <input type="number" class="form-control" name="overage" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Roaming</label>
+                            <input type="number" class="form-control" name="roam" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Change MOU</label>
+                            <input type="number" class="form-control" name="changem" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Change Revenue</label>
+                            <input type="number" class="form-control" name="changer" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Revenue</label>
+                            <input type="number" class="form-control" name="revenue" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- 4. DEVICE & PLAN -->
+                    <h6 class="mt-3 text-primary">Device & Plan</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Equipment Days</label>
+                            <input type="number" class="form-control" name="eqpdays" min="0">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Models</label>
+                            <input type="number" class="form-control" name="models" min="0" step="1">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Active Subs</label>
+                            <input type="number" class="form-control" name="actvsubs" min="0" step="1">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Unique Subs</label>
+                            <input type="number" class="form-control" name="uniqsubs" min="0" step="1">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Refurbished</label>
+                            <select class="form-select" name="refurb">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Web Capable</label>
+                            <select class="form-select" name="webcap">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5. DEMOGRAPHICS -->
+                    <h6 class="mt-3 text-primary">Demographics</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Age 1</label>
+                            <input type="number" class="form-control" name="age1" min="0">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Age 2</label>
+                            <input type="number" class="form-control" name="age2" min="0">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Children</label>
+                            <select class="form-select" name="children">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Income</label>
+                            <input type="number" class="form-control" name="income" min="1" max="9">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Truck</label>
+                            <select class="form-select" name="truck">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">RV</label>
+                            <select class="form-select" name="rv">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Motorcycle</label>
+                            <select class="form-select" name="mcycle">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 6. CREDIT & RETENTION -->
+                    <h6 class="mt-3 text-primary">Credit & Retention</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Credit A</label>
+                            <select class="form-select" name="credita">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Credit AA</label>
+                            <select class="form-select" name="creditaa">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Credit Card</label>
+                            <select class="form-select" name="creditcd">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Retention Calls</label>
+                            <input type="number" class="form-control" name="retcalls" min="0">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Retention Accepted</label>
+                            <input type="number" class="form-control" name="retaccpt" min="0">
+                        </div>
+                    </div>
+
+                    <!-- 7. MARKETING & BEHAVIOR -->
+                    <h6 class="mt-3 text-primary">Marketing & Behavior</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Mail Order</label>
+                            <select class="form-select" name="mailord">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Mail Response</label>
+                            <select class="form-select" name="mailres">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Travel</label>
+                            <select class="form-select" name="travel">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">PC Owner</label>
+                            <select class="form-select" name="pcown">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 8. CATEGORICAL FIELDS -->
+                    <h6 class="mt-3 text-primary">Categorical Data</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">PRIZM Cluster</label>
+                            <select class="form-select" name="prizm_cluster">
+                                <option value="">-- select --</option>
+                                <option value="rural">Rural</option>
+                                <option value="urban">Urban</option>
+                                <option value="town">Town</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Occupation</label>
+                            <select class="form-select" name="occupation">
+                                <option value="">-- select --</option>
+                                <option value="professional">Professional</option>
+                                <option value="clerical">Clerical</option>
+                                <option value="craft">Craft</option>
+                                <option value="student">Student</option>
+                                <option value="homemaker">Homemaker</option>
+                                <option value="retired">Retired</option>
+                                <option value="self-employed">Self-employed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Marital Status</label>
+                            <select class="form-select" name="marital_status">
+                                <option value="unknown">Unknown</option>
+                                <option value="married">Married</option>
+                                <option value="unmarried">Unmarried</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Own/Rent</label>
+                            <select class="form-select" name="ownrent">
+                                <option value="">-- select --</option>
+                                <option value="0">Rent</option>
+                                <option value="1">Own</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 9. NEW CELL & REFERRAL -->
+                    <h6 class="mt-3 text-primary">New Cell & Referral</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">New Cell (Y)</label>
+                            <select class="form-select" name="newcelly">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">New Cell (N)</label>
+                            <select class="form-select" name="newcelln">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Referred</label>
+                            <select class="form-select" name="refer">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 10. PRICING & RETENTION -->
+                    <h6 class="mt-3 text-primary">Pricing & Retention</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Promo Pricing</label>
+                            <select class="form-select" name="setprcm">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Set Price</label>
+                            <input type="number" class="form-control" name="setprc" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Retention Call</label>
+                            <select class="form-select" name="retcall">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 11. CHURN (Target Variable) -->
+                    <h6 class="mt-3 text-primary">Churn Status</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Churn</label>
+                            <select class="form-select" name="churn">
+                                <option value="">-- select --</option>
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">Ingest Single Record</button>
                 </form>
             </div>
         </div>
@@ -32,29 +405,147 @@
             <div class="card-header">Batch File Upload</div>
             <div class="card-body">
                 <form id="batchForm" enctype="multipart/form-data">
-                    <div class="mb-3"><label class="form-label">File (CSV/Excel)</label>
-                        <input type="file" class="form-control" name="file" accept=".csv,.xlsx" required></div>
+                    <div class="mb-3">
+                        <label class="form-label">File (CSV/Excel)</label>
+                        <input type="file" class="form-control" name="file" accept=".csv,.xlsx" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Source</label>
+                        <select class="form-control" name="source">
+                            <option value="csv">CSV File</option>
+                            <option value="google_form">Google Forms</option>
+                            <option value="manual_upload">Manual Upload</option>
+                            <option value="cell2cell_dataset">Cell2Cell Dataset</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">Upload Batch</button>
                 </form>
+                
+                <div class="mt-4">
+                    <h6>Expected CSV Format:</h6>
+                    <small class="text-muted">
+                        Your CSV should include columns like: customer_id, months, mou, revenue, recchrge, 
+                        outcalls, incalls, changem, changer, eqpdays, and other Cell2Cell features.
+                        Column names will be automatically normalized.
+                    </small>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<pre id="response" class="mt-4 bg-light p-3 border rounded"></pre>
+<!-- Response Display -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">Ingestion Response</div>
+        <div class="card-body">
+            <pre id="response" class="bg-light p-3 border rounded" style="min-height: 200px; max-height: 400px; overflow-y: auto;"></pre>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block javascript %}
 <script>
-    document.querySelectorAll('form').forEach(f => {
-        f.addEventListener('submit', async e => {
-            e.preventDefault();
-            const fd = new FormData(f);
-            const url = f.id === 'singleForm' ? '/ingest/single' : '/ingest/batch';
-            const res = await fetch(url, {method: 'POST', body: fd});
-            const data = await res.json();
-            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-        });
+// Single record form submission
+document.getElementById('singleForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    const responseElement = document.getElementById('response');
+    
+    // Convert numeric fields and handle empty values
+    const numericFields = [
+        'months', 'phones', 'mou', 'outcalls', 'incalls', 'peakvce', 'opeakvce', 
+        'dropvce', 'blckvce', 'unansvce', 'threeway', 'callwait', 'callfwdv', 
+        'dropblk', 'custcare', 'mourec', 'recchrge', 'directas', 'overage', 
+        'roam', 'changem', 'changer', 'revenue', 'eqpdays', 'models', 'actvsubs', 
+        'uniqsubs', 'age1', 'age2', 'income', 'retcalls', 'retaccpt', 'setprc'
+    ];
+    
+    const booleanFields = [
+        'refurb', 'webcap', 'children', 'truck', 'rv', 'mcycle', 'credita', 
+        'creditaa', 'creditcd', 'mailord', 'mailres', 'travel', 'pcown', 
+        'ownrent', 'newcelly', 'newcelln', 'refer', 'setprcm', 'retcall', 'churn'
+    ];
+    
+    // Process numeric fields
+    numericFields.forEach(field => {
+        if (data[field] && data[field] !== '') {
+            data[field] = parseFloat(data[field]);
+        } else {
+            data[field] = null;
+        }
     });
+    
+    // Process boolean fields
+    booleanFields.forEach(field => {
+        if (data[field] && data[field] !== '') {
+            data[field] = parseInt(data[field]);
+        } else {
+            data[field] = null;
+        }
+    });
+    
+    // Handle empty strings for categorical fields
+    const categoricalFields = ['prizm_cluster', 'occupation', 'marital_status'];
+    categoricalFields.forEach(field => {
+        if (data[field] === '') {
+            data[field] = null;
+        }
+    });
+    
+    try {
+        responseElement.textContent = 'Sending data...';
+        
+        const response = await fetch('/ingest/single', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        responseElement.textContent = JSON.stringify(result, null, 2);
+        
+        if (response.ok) {
+            this.reset(); // Clear form on success
+        }
+        
+    } catch (error) {
+        console.error('Single record ingestion failed:', error);
+        responseElement.textContent = `Error: ${error.message}`;
+    }
+});
+
+// Batch file form submission
+document.getElementById('batchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const responseElement = document.getElementById('response');
+    
+    try {
+        responseElement.textContent = 'Uploading...';
+        
+        const response = await fetch('/ingest/csv', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        responseElement.textContent = JSON.stringify(result, null, 2);
+        
+        if (response.ok) {
+            this.reset(); // Clear form on success
+        }
+        
+    } catch (error) {
+        console.error('Batch upload failed:', error);
+        responseElement.textContent = `Error: ${error.message}`;
+    }
+});
 </script>
 {% endblock %}

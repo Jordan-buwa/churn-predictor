@@ -6,8 +6,8 @@ import logging
 import sys, os
 from pathlib import Path
 from contextlib import asynccontextmanager
-
-
+from dotenv import load_dotenv
+load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
@@ -87,7 +87,7 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory="src/api/templates")  
 
-app.state.allowed_models = get_allowed_model_types()   # e.g. ["xgboost","random-forest","neural-net"]
+app.state.allowed_models = get_allowed_model_types()   
 app.state.environment   = os.getenv("ENVIRONMENT", "development")
 
 
@@ -108,7 +108,8 @@ if os.getenv("ENVIRONMENT", "development") != "test":
     app.include_router(validate.router,tags=["Data Validation"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(ingest.router,  tags=["Data ingestion"])
-    app.include_router(auth.router)
+    # Include auth router with prefix
+    app.include_router(auth.router, prefix="/auth", tags=["auth"])
 else:
     from src.api.routers import predict, train
     app.include_router(predict.router, tags=["predictions"])
@@ -139,7 +140,6 @@ async def ui_metrics(request: Request):
 @app.get("/data_view", response_class=HTMLResponse)
 async def ui_data_view(request: Request):
     return templates.TemplateResponse("data_view.html", {"request": request})
-
 
 @app.get("/health-ui", response_class=HTMLResponse)
 async def health_ui(request: Request):
@@ -180,5 +180,5 @@ if __name__ == "__main__":
 def on_startup():
     # Skip DB initialization in test environment to avoid external depends
     if os.getenv("ENVIRONMENT", "development") == "test":
-        return
+        return 
     Base.metadata.create_all(bind=engine)

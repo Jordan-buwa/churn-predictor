@@ -16,8 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install azure-ai-ml azure-identity
 
 # Copy application code
+COPY data ./data/
 COPY src/ ./src/
 COPY config/ ./config/
+COPY retrain.py .
 # Create non-root user
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
