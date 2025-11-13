@@ -1,8 +1,9 @@
+# prometheus.yml - FIXED VERSION
 global:
   scrape_interval: 15s
 
 scrape_configs:
   - job_name: 'drift-monitor'
     static_configs:
-      - targets: ['host.docker.internal:8000']
+      - targets: ['localhost:8000']  
     scrape_interval: 5s
