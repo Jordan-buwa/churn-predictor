@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Churn Prediction API{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-lg border-0">
+            <div class="card-header text-center py-4">
+                <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create Account</h3>
+                <p class="text-muted mb-0">Register here</p>
+            </div>
+            <div class="card-body p-4">
+                <!-- Registration Form -->
+                <form id="registerForm" method="POST" action="/auth/register">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Username *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-user text-muted"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control border-start-0" 
+                                           id="username" 
+                                           name="username"
+                                           placeholder="Choose a username" 
+                                           required
+                                           minlength="3">
+                                </div>
+                                <div class="form-text">Must be at least 3 characters long</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i>Email Address *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-envelope text-muted"></i>
+                                    </span>
+                                    <input type="email" 
+                                           class="form-control border-start-0" 
+                                           id="email" 
+                                           name="email"
+                                           placeholder="your@email.com" 
+                                           required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Password *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-lock text-muted"></i>
+                                    </span>
+                                    <input type="password" 
+                                           class="form-control border-start-0" 
+                                           id="password" 
+                                           name="password"
+                                           placeholder="Create a password" 
+                                           required
+                                           minlength="6">
+                                    <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Must be at least 6 characters long</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Confirm Password *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-lock text-muted"></i>
+                                    </span>
+                                    <input type="password" 
+                                           class="form-control border-start-0" 
+                                           id="confirmPassword" 
+                                           name="confirmPassword"
+                                           placeholder="Confirm your password" 
+                                           required>
+                                    <button class="btn btn-outline-secondary border-start-0" type="button" id="toggleConfirmPassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text" id="passwordMatch"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">
+                            <i class="fas fa-phone me-1"></i>Phone Number
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-phone text-muted"></i>
+                            </span>
+                            <input type="tel" 
+                                   class="form-control border-start-0" 
+                                   id="phone" 
+                                   name="phone"
+                                   placeholder="+1 (555) 123-4567">
+                        </div>
+                        <div class="form-text">Optional - for account recovery</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="role" class="form-label">
+                            <i class="fas fa-user-tag me-1"></i>Account Type
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-briefcase text-muted"></i>
+                            </span>
+                            <select class="form-select border-start-0" id="role" name="role">
+                                <option value="guest" selected>Guest User</option>
+                                <option value="manager">Manager</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="form-text">Select your primary use case</div>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> 
+                            and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="mb-0">
+                            Already have an account? 
+                            <a href="/auth/login" class="text-decoration-none">Login here</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const icon = this.querySelector('i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+
+    // Toggle confirm password visibility
+    document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const icon = this.querySelector('i');
+        
+        if (confirmPasswordInput.type === 'password') {
+            confirmPasswordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            confirmPasswordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+
+    // Password confirmation validation
+    function validatePasswordMatch() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const matchText = document.getElementById('passwordMatch');
+        
+        if (confirmPassword === '') {
+            matchText.textContent = '';
+            matchText.className = 'form-text';
+            return true;
+        }
+        
+        if (password === confirmPassword) {
+            matchText.textContent = '✓ Passwords match';
+            matchText.className = 'form-text text-success fw-bold';
+            return true;
+        } else {
+            matchText.textContent = '✗ Passwords do not match';
+            matchText.className = 'form-text text-danger fw-bold';
+            return false;
+        }
+    }
+
+    document.getElementById('password').addEventListener('input', validatePasswordMatch);
+    document.getElementById('confirmPassword').addEventListener('input', validatePasswordMatch);
+
+    // Form submission handling
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validate password match
+        if (!validatePasswordMatch()) {
+            showAlert('Please make sure your passwords match.', 'danger');
+            return;
+        }
+
+        // Validate terms agreement
+        if (!document.getElementById('terms').checked) {
+            showAlert('Please agree to the Terms of Service and Privacy Policy.', 'warning');
+            return;
+        }
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+        
+        try {
+            // Prepare form data
+            const formData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                phone: document.getElementById('phone').value || null,
+                role: document.getElementById('role').value
+            };
+
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                // Show success message and redirect to login
+                showAlert('Account created successfully! Redirecting to login...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            } else {
+                const error = await response.json();
+                showAlert(error.detail || 'Registration failed. Please try again.', 'danger');
+            }
+        } catch (error) {
+            showAlert('Network error. Please check your connection and try again.', 'danger');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+
+    // Alert function
+    function showAlert(message, type) {
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.card-body').insertBefore(alertDiv, document.querySelector('#registerForm'));
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Check if user is already logged in
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            // Verify token is still valid
+            fetch('/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // User is already logged in, redirect to home
+                    window.location.href = '/';
+                } else {
+                    // Token is invalid, remove it
+                    localStorage.removeItem('access_token');
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('access_token');
+            });
+        }
+    });
+</script>
+{% endblock %}

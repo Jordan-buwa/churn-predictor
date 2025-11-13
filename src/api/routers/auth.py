@@ -1,94 +1,113 @@
+import jwt
 import uuid
 import os
-from fastapi import APIRouter, Depends
-from fastapi_users import FastAPIUsers
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
-)
-from fastapi_users.db import SQLAlchemyUserDatabase
-from fastapi_users.manager import BaseUserManager, UUIDIDMixin
-from fastapi_users import schemas as fau_schemas
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from src.api.schemas import API_KEY_SECRET, verify_api_key, verify_password, hash_password
+from src.api.authenticator import get_current_user, create_access_token, get_current_active_user
+from src.api.db import User, get_db, UserCreate, UserRead, UserUpdate
+from datetime import datetime, timedelta
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pwdlib import PasswordHash
 
-from src.api.db import User, get_db
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-def get_jwt_strategy() -> JWTStrategy:
-    secret = os.getenv("AUTH_SECRET", "CHANGE_ME")
-    if secret == "CHANGE_ME":
-        print("⚠️  WARNING: Using default AUTH_SECRET - set AUTH_SECRET environment variable for production")
-    return JWTStrategy(secret=secret, lifetime_seconds=3600)
-
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-
-auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
-)
-
-def get_user_db(session: Session = Depends(get_db)):
-    yield SQLAlchemyUserDatabase(session, User)
-
-class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    def __init__(self, user_db: SQLAlchemyUserDatabase):
-        super().__init__(user_db)
-        self.reset_password_token_secret = os.getenv("AUTH_SECRET", "CHANGE_ME")
-        self.verification_token_secret = os.getenv("AUTH_SECRET", "CHANGE_ME")
-
-    async def on_after_register(self, user: User, request=None):
-        print(f"User {user.email} has registered.")
-        return
-
-def get_user_manager(user_db=Depends(get_user_db)):
-    yield UserManager(user_db)
-
-fastapi_users = FastAPIUsers[User, uuid.UUID](
-    get_user_manager,
-    [auth_backend],
-)
+# Password hashing
+pwd = PasswordHash.recommended()
 
 router = APIRouter()
 
-# Export a dependency to require an authenticated, active user
-current_active_user = fastapi_users.current_user(active=True)
+# Registration route
+@router.post("/auth/register", response_model=UserRead)
+def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.email == user_data.email) | (User.username == user_data.username)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already registered"
+        )
+    
+    # Create new user
+    hashed_password = hash_password(user_data.password)
+    user = User(
+        username=user_data.username,
+        email=user_data.email,
+        phone=user_data.phone,
+        password=hashed_password,
+        role=user_data.role,
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return user
 
-router.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    prefix="/auth/jwt",
-    tags=["auth"],
-)
 
-class UserRead(fau_schemas.BaseUser[uuid.UUID]):
-    pass
+# Login route
+@router.post("/auth/login")
+def login(
+    username: str,
+    password: str,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).first()
+    
+    if not user or not verify_password(password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.id}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserRead.from_orm(user)
+    }
 
-class UserCreate(fau_schemas.BaseUserCreate):
-    pass
+# Refresh token
+@router.post("/auth/refresh")
+def refresh_token(current_user: User = Depends(get_current_user)):
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": current_user.id}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
-class UserUpdate(fau_schemas.BaseUserUpdate):
-    pass
+# User information and update routes
+@router.get("/auth/me", response_model=UserRead)
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return current_user
 
-router.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"],
-)
+@router.put("/auth/me", response_model=UserRead)
+async def update_user_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    update_data = user_update.dict(exclude_unset=True)
+    
+    # If password is being updated, hash it
+    if "password" in update_data:
+        update_data["password"] = hash_password(update_data["password"])
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
-router.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix="/auth",
-    tags=["auth"],
-)
-
-router.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
-
-router.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)

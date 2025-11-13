@@ -1,7 +1,9 @@
-from fastapi import HTTPException, APIRouter, Body, status
+from fastapi import HTTPException, APIRouter, Body, status, Depends
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 import numpy as np
+from src.api.authenticator import get_current_active_user
+from src.api.db import UserCreate, UserRead, UserRole
 from src.api.utils.database import get_db_connection
 from src.data_pipeline.preprocess import ProductionPreprocessor
 from typing import Dict, Any
@@ -22,7 +24,8 @@ if os.getenv("ENVIRONMENT") == "test":
     from unittest.mock import MagicMock
     current_active_user = MagicMock(id="test-user")
 else:
-    from src.api.routers.auth import current_active_user
+    from src.api.authenticator import current_active_user
+
 router = APIRouter(prefix="/predict")
 
 logger = logging.getLogger(__name__)
@@ -110,12 +113,25 @@ def predict_from_payload(
     model_type: str,
     payload: Dict[str, Any] = Body(..., example={
         "revenue": 45.3, "mou": 120.5, "months": 12, "credita": "A",
-    })
+    }),
+    current_user = Depends(get_current_active_user)
 ):
 
     """
     Accept raw customer data → predict churn.
     """
+    
+    # Adding role-based access control
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not have access to prediction services"
+        )
+    
+    # Log prediction request for auditing
+    logger.info(f"Prediction request - User: {current_user.username}, Model: {model_type}")
+    
 
     payload = map_dropdowns(payload)
     payload = null_to_nan(payload)
@@ -201,8 +217,16 @@ def predict_from_payload(
 def predict_from_db_customer(
     model_type: str,
     customer_id: str,
+    current_user = Depends(get_current_active_user)
 ):
     """Predict churn for a specific customer from database."""
+
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not give you access to database"
+        )
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -250,7 +274,7 @@ def predict_from_db_customer(
                 "model_path": model_path,
                 "customer_id": customer_id,
                 "feature_count": len(features_dict),
-                "preprocessing_applied": False  # Data already preprocessed
+                "preprocessing_applied": False 
             }
 
             return PredictionResponse(
@@ -264,13 +288,23 @@ def predict_from_db_customer(
             handle_data_error(f"customer_id: {customer_id}", e)
         else:
             handle_model_error(model_type, e)
+
 @router.get("/{model_type}/batch/{batch_id}", response_model=PredictionResponse)
 def predict_from_db_batch(
     model_type: str,
     batch_id: str,
     limit: int = 100,
+    current_user = Depends(get_current_active_user)
 ):
     """Return predictions for the *first N* records of a batch."""
+
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not give you access to database"
+        )
+    
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -317,7 +351,7 @@ def predict_from_db_batch(
             "predictions": results,
             "model_path": model_path,
             "prediction_count": len(results),
-            "preprocessing_applied": False  # Data already preprocessed
+            "preprocessing_applied": False  
         }
 
         return PredictionResponse(
