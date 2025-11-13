@@ -14,7 +14,7 @@ from src.api.ml_models import load_all_models, clear_models, get_all_models_info
 from src.api.db import Base, engine
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
 from src.api.utils.config import get_allowed_model_types 
-
+from src.api.template_context import get_template_context
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,13 +75,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000"
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # templates
 
@@ -116,6 +122,10 @@ else:
     app.include_router(train.router,   tags=["training"])
     logger.info("Test environment detected: including predict and train routers")
 
+
+@app.get("/auth/login", response_class=HTMLResponse)
+async def get_login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 @app.get("/", response_class=HTMLResponse)
 async def ui_root(request: Request):
     """Home page – uses index.html"""
