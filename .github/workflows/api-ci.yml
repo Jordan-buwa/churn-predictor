@@ -425,14 +425,18 @@ jobs:
         with:
           path: ./artifacts
 
-      - name: Load and push images
+    - name: Load and push images
         run: |
           echo "Loading and pushing images to registry..."
           
-          # Load images that were built
-          if [ -f ./artifacts/api-image/api-image.tar.gz ]; then
+          # --- API Image Fix: Use explicit decompression and -i flag ---
+          API_SRC="./artifacts/api-image/api-image.tar.gz"
+          if [ -f $API_SRC ]; then
             echo "📦 Loading API image..."
-            docker load < ./artifacts/api-image/api-image.tar.gz
+            # FIX: Explicitly decompress to a non-compressed tar file first
+            gzip -dc $API_SRC > api-image-uncompressed.tar
+            docker load -i api-image-uncompressed.tar
+            rm api-image-uncompressed.tar # Clean up
             
             echo "🏷️ Tagging API image..."
             docker tag ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }} \
@@ -448,9 +452,13 @@ jobs:
             echo "⏭️ Skipping API image (not built)"
           fi
           
-          if [ -f ./artifacts/data-pipeline-image/data-pipeline-image.tar.gz ]; then
+          # --- Data Pipeline Image Fix ---
+          DATA_SRC="./artifacts/data-pipeline-image/data-pipeline-image.tar.gz"
+          if [ -f $DATA_SRC ]; then
             echo "📦 Loading Data Pipeline image..."
-            docker load < ./artifacts/data-pipeline-image/data-pipeline-image.tar.gz
+            gzip -dc $DATA_SRC > data-pipeline-image-uncompressed.tar
+            docker load -i data-pipeline-image-uncompressed.tar
+            rm data-pipeline-image-uncompressed.tar
             
             echo "🏷️ Tagging Data Pipeline image..."
             docker tag ${{ env.IMAGE_PREFIX }}-data-pipeline:${{ github.sha }} \
@@ -466,9 +474,13 @@ jobs:
             echo "⏭️ Skipping Data Pipeline image (not built)"
           fi
           
-          if [ -f ./artifacts/training-image/training-image.tar.gz ]; then
+          # --- Training Image Fix ---
+          TRAINING_SRC="./artifacts/training-image/training-image.tar.gz"
+          if [ -f $TRAINING_SRC ]; then
             echo "📦 Loading Training image..."
-            docker load < ./artifacts/training-image/training-image.tar.gz
+            gzip -dc $TRAINING_SRC > training-image-uncompressed.tar
+            docker load -i training-image-uncompressed.tar
+            rm training-image-uncompressed.tar
             
             echo "🏷️ Tagging Training image..."
             docker tag ${{ env.IMAGE_PREFIX }}-training:${{ github.sha }} \
