@@ -1,8 +1,12 @@
-name: Deploy to Azure VM
+name: CI/CD TEST Pipeline
+run-name: CI/CD Pipeline - by  @${{ github.actor }}
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+    paths: 
+      - '**/*.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
 
 jobs:
   deploy:
@@ -10,7 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -44,3 +47,84 @@ jobs:
 
             # Clean up old images/containers
             docker system prune -af --volumes
+
+
+
+name: Deploy Churn Predictor
+run-name: Deploy by @${{ github.actor }} · ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.py'
+      - 'requirements.txt'
+      - 'Dockerfile*'
+      - 'docker-compose.yml'
+      - '.github/workflows/**'
+
+jobs:
+  deploy:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy to Azure
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.AZURE_HOST }}
+          username: ${{ secrets.AZURE_USER }}
+          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 60s
+          script: |
+            set -e  
+
+            # Define app directory
+            APP_DIR="/home/${{ secrets.AZURE_USER }}/churn-predictor"
+
+            # Clone or update repo
+            if [ ! -d "$APP_DIR" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git checkout main
+            git pull origin main
+
+            # Create .env from secrets (secure, no echo)
+            cat > .env << 'EOF'
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            POSTGRES_DB_NAME=${{ secrets.POSTGRES_DB_NAME }}
+            POSTGRES_DB_USER=${{ secrets.POSTGRES_DB_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            DATABASE_URL=postgresql://${{ secrets.POSTGRES_DB_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB_NAME }}?sslmode=require
+            MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
+            API_KEY_SECRET=${{ secrets.API_KEY_SECRET }}
+            AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+            AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+            AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+            EOF
+
+            echo "Environment file created."
+
+            # Stop and clean up old containers
+            echo "Stopping old services..."
+            docker compose down --remove-orphans --volumes || true
+
+            # Build and start new services
+            echo "Building and starting services..."
+            docker compose build --no-cache
+            docker compose up -d
+
+            # Cleanup old Docker resources
+            docker system prune -af --volumes || true
