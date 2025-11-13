@@ -1,0 +1,14 @@
+dags:
+  from_postgresdb_to_azure_blob:
+    dag_id: from_postgresdb_to_azure_blob
+    owner: 
+    depends_on_past: false
+    start_date: "2024-12-01"
+    timezone: UTC
+    schedule: "*/1 * * * *"  
+    catchup: false
+    description: "ETL from Postgres tables to Azure blob"
+    email_on_failure: false
+    email_on_retry: false
+    retries: 1
+    retry_delay: 2
