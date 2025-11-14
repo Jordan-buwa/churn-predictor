@@ -30,3 +30,5 @@ docker-compose.azure.yml
 .vscode
 /mlartifacts
 *.db
+*.save
+*.save.*
