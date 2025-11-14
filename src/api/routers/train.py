@@ -46,7 +46,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO)
 
-# Training job registry (use Redis or database in production)
+# Training job registry
 training_jobs: Dict[str, Dict] = {}
 
 
@@ -86,7 +86,7 @@ def register_job(job_id: str, model_type: str, script_path: str):
         "status": "pending",
         "model_type": model_type,
         "script_path": script_path,
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "completed_at": None,
         "model_path": None,
         "error": None,
@@ -100,7 +100,7 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
     try:
         # Update job status to running
         training_jobs[job_id]["status"] = "running"
-        training_jobs[job_id]["started_at"] = datetime.utcnow().isoformat()
+        training_jobs[job_id]["started_at"] = datetime.now(UTC).isoformat()
 
         logger.info(f"Starting training job {job_id} for {model_type}")
 
@@ -133,7 +133,7 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
 
         # Update job status on success
         training_jobs[job_id]["status"] = "completed"
-        training_jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
         training_jobs[job_id]["logs"] = result.stdout
 
         # Find the latest model file
@@ -149,7 +149,7 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
     except subprocess.CalledProcessError as e:
         # Update job status on failure
         training_jobs[job_id]["status"] = "failed"
-        training_jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
         training_jobs[job_id]["error"] = f"Script execution failed: {e.stderr}"
         training_jobs[job_id]["logs"] = (
             e.stdout or "") + "\n" + (e.stderr or "")
@@ -158,7 +158,7 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
 
     except Exception as e:
         training_jobs[job_id]["status"] = "failed"
-        training_jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
         training_jobs[job_id]["error"] = str(e)
         logger.error(f"Unexpected error in training job {job_id}: {str(e)}")
 
@@ -427,7 +427,7 @@ async def cancel_job(job_id: str):
 
     # Update status to cancelled
     job["status"] = "cancelled"
-    job["completed_at"] = datetime.utcnow().isoformat()
+    job["completed_at"] = datetime.now(UTC).isoformat()
     job["error"] = "Job was cancelled by user"
 
     logger.info(f"Cancelled training job {job_id}")
