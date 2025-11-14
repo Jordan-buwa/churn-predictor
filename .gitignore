@@ -31,3 +31,4 @@ docker-compose.azure.yml
 /mlartifacts
 models/*/versions/
 models/*/schemas/
+*.db
