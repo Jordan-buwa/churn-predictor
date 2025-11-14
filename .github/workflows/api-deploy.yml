@@ -16,7 +16,7 @@ jobs:
   deploy:
     name: Deploy to Azure VM
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -68,7 +68,10 @@ jobs:
 
             # Restart services
             docker compose down --remove-orphans --volumes || true
-            docker compose build --no-cache
+
+            # Build and start new services
+            echo "Building and starting services..."
+            docker compose build --no-cache 
             docker compose up -d
 
             docker system prune -af --volumes || true
