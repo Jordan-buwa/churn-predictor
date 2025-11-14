@@ -76,7 +76,7 @@ class DataPreprocessor:
         for col in self.num_cols:
             if col in self.df.columns and self.df[col].isnull().any():
                 fill_value = self.df[col].median()
-                self.df[col].fillna(fill_value, inplace=True)
+                self.df[col] = self.df[col].fillna(fill_value)
                 self.numerical_fill_values[col] = float(fill_value)
                 self.logger.info(
                     f"Filled missing values in {col} with median: {fill_value}")
@@ -88,7 +88,7 @@ class DataPreprocessor:
                     fill_value = self.df[col].mode()[0]
                 else:
                     fill_value = "Unknown"
-                self.df[col].fillna(fill_value, inplace=True)
+                self.df[col] = self.df[col].abs(fill_value)
                 self.categorical_fill_values[col] = fill_value
                 self.logger.info(
                     f"Filled missing values in {col} with mode: {fill_value}")
@@ -99,7 +99,7 @@ class DataPreprocessor:
             if col in self.df.columns and self.df[col].isnull().any():
                 if col in self.num_cols:
                     fill_value = self.df[col].median()
-                    self.df[col].fillna(fill_value, inplace=True)
+                    self.df[col] = self.df[col].abs(fill_value)
                     if col not in self.numerical_fill_values:
                         self.numerical_fill_values[col] = float(fill_value)
                 elif col in self.cat_cols:
@@ -107,7 +107,7 @@ class DataPreprocessor:
                         fill_value = self.df[col].mode()[0]
                     else:
                         fill_value = "Unknown"
-                    self.df[col].fillna(fill_value, inplace=True)
+                    self.df[col] = self.df[col].abs(fill_value)
                     if col not in self.categorical_fill_values:
                         self.categorical_fill_values[col] = fill_value
 
@@ -576,13 +576,11 @@ class ProductionPreprocessor(DataPreprocessor):
         # Numerical features
         for col, fill_value in self.numerical_fill_values.items():
             if col in self.df.columns and self.df[col].isnull().any():
-                self.df[col].fillna(fill_value, inplace=True)
-
+                self.df[col] = self.df[col].fillna(fill_value)
         # Categorical features
         for col, fill_value in self.categorical_fill_values.items():
             if col in self.df.columns and self.df[col].isnull().any():
-                self.df[col].fillna(fill_value, inplace=True)
-
+                self.df[col] = self.df[col].fillna(fill_value)
         # Handle potential source columns for derived features
         potential_derived_source_cols = self.artifacts.get(
             "potential_derived_source_cols", [])
@@ -627,7 +625,15 @@ class ProductionPreprocessor(DataPreprocessor):
             "device_tenure_index": lambda: (0.5 * self.df["models"] +
                                             self.df["eqpdays"] / 100 + self.df["refurb"]),
             "demographic_index": lambda: ((self.df["age1"] + self.df["age2"]) / 2 +
-                                          self.df["children"] * 2 + self.df["income"] / 10000)
+                                          self.df["children"] * 2 + self.df["income"] / 10000),
+            "socio_tier": lambda: (self.df["credita"] + 2 * self.df["creditaa"] +
+                                   self.df["prizmub"] + 0.5 * self.df["prizmtwn"]),
+            "occupation_class": lambda: (self.df["occprof"] + self.df["occcler"] +
+                                         self.df["occcrft"] + self.df["occret"] + self.df["occself"]),
+            "household_lifestyle_score": lambda: (self.df["ownrent"] + self.df["marryyes"] + self.df["pcown"] +
+                                                  self.df["creditcd"] + self.df["travel"] + self.df["truck"] + self.df["rv"]),
+            "churn_change_score": lambda: (self.df["changem"] + self.df["changer"] +
+                                           self.df["newcelly"] + self.df["newcelln"] - 0.5 * self.df["refer"]),
         }
 
         for feature_name, operation in feature_operations.items():
