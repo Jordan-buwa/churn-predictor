@@ -17,7 +17,7 @@
                     <label class="form-label">Model Type <span class="text-danger">*</span></label>
                     <select class="form-select" name="model_type" required>
                         {% for mt in request.app.state.allowed_models %}
-                            <option value="{{ mt }}">{{ mt.replace('-',' ') | title }}</option>
+                        <option value="{{ mt }}">{{ mt.replace('-',' ') | title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -483,19 +483,31 @@
             if (payload[k] === '') payload[k] = null;
         }
 
+        // ✅ Get token from localStorage
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('You are not logged in. Please log in first.');
+            return;
+        }
+
         try {
             const res = await fetch(`/predict/${model}`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // fixed spelling
+                },
                 body: JSON.stringify(payload)
             });
+
             const data = await res.json();
             const pre = document.getElementById('response');
             pre.style.display = 'block';
             pre.textContent = JSON.stringify(data, null, 2);
         } catch (err) {
-            document.getElementById('response').textContent = 'Error: ' + err.message;
-            document.getElementById('response').style.display = 'block';
+            const pre = document.getElementById('response');
+            pre.textContent = 'Error: ' + err.message;
+            pre.style.display = 'block';
         }
     });
 </script>
