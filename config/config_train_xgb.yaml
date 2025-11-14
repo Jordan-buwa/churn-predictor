@@ -21,3 +21,5 @@ test_size: 0.2
 random_state: 42
 
 apply_smotetomek: true
+training_schedule:
+  days: 7  

@@ -51,5 +51,8 @@ model:
   max_features: "sqrt"       
   bootstrap: true
 
+training_schedule:
+  days: 7
+
 output:
   model_dir: "models"
