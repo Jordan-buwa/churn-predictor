@@ -5,7 +5,9 @@ training:
   num_epochs: 20
   n_trials: 10
   random_state: 42
-  num_splits_cv: 5
+  
+training_schedule:
+  days: 7
 
 optuna:
   n_layers:
