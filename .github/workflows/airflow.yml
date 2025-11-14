@@ -3,13 +3,13 @@ name: Test Airflow DAGs
 on:
   push:
     branches:
-      - '*'     
+      - ['wycliffe_branch']     
 
    
      
   pull_request:
     branches:
-      - '*'     
+      - ['wycliffe_branch']     
         
    
   workflow_dispatch:
