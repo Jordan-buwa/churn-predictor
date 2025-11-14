@@ -54,7 +54,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # User model for authentication - CORRIGÉ
 class User(SQLModel, table=True):
-    __tablename__ = "user"  # Nom explicite de la table
+    __tablename__ = "user"  
     
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(sa_column=Column(String(50), nullable=False, index=True))
