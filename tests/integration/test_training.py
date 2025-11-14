@@ -1,7 +1,7 @@
 import os
 import uuid
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import PosixPath
 from unittest.mock import MagicMock
 
@@ -10,6 +10,7 @@ from src.api.routers.train import training_jobs, create_job_id, register_job
 
 from fastapi.testclient import TestClient
 client = TestClient(app)
+
 
 @pytest.fixture
 def fake_script(tmp_path):
@@ -59,7 +60,7 @@ class TestJobStatusEndpoint:
 
         training_jobs[job_id]["status"] = "completed"
         training_jobs[job_id]["model_path"] = "/path/to/model.joblib"
-        training_jobs[job_id]["completed_at"] = datetime.utcnow().isoformat()
+        training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
 
         response = client.get(f"/train/status/{job_id}")
 
@@ -95,7 +96,7 @@ class TestJobStatusEndpoint:
             "job_id": parent_job_id,
             "status": "pending",
             "model_type": "all",
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
             "sub_jobs": sub_job_ids
         }
 
