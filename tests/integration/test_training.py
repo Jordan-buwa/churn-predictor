@@ -38,6 +38,33 @@ def clean_jobs():
     training_jobs.clear()
 
 
+@pytest.fixture
+def fake_models_dir(tmp_path):
+    """Create a fake models directory with dummy model files."""
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    (models_dir / "model_xgboost.pkl").write_text("dummy content")
+    (models_dir / "model_neural_net.pkl").write_text("dummy content")
+    return models_dir
+
+
+@pytest.fixture
+def mock_get_available_models(monkeypatch, fake_models_dir):
+    """Mock get_available_models to return fake model info."""
+    def _mock():
+        return {
+            "available_models": [
+                {"base_path": str(fake_models_dir /
+                                  "model_xgboost.pkl"), "type": "xgboost"},
+                {"base_path": str(
+                    fake_models_dir / "model_neural_net.pkl"), "type": "neural-net"},
+            ]
+        }
+    monkeypatch.setattr(
+        "src.api.routers.train.get_available_models", _mock
+    )
+
+
 class TestJobStatusEndpoint:
 
     def test_get_job_status_pending(self, fake_script):
@@ -186,7 +213,7 @@ class TestCancelJobEndpoint:
 
 
 class TestAvailableModelsEndpoint:
-    def test_get_available_models_with_files(self, fake_models_dir, monkeypatch, mock_get_available_models):
+    def test_get_available_models_with_files(self, fake_models_dir, mock_get_available_models):
         """Should list all model files with metadata."""
         original_cwd = os.getcwd()
         try:
@@ -195,20 +222,17 @@ class TestAvailableModelsEndpoint:
 
             assert response.status_code == 200
             data = response.json()
-
             models = data["available_models"]
-            assert isinstance(models, list)  # FIX: Assert list structure
-            assert len(models) > 0
 
-            # Check structure of model info
-            for model_info in models:  # FIX: Iterate over a list
+            assert isinstance(models, list)
+            assert len(models) == 2
+            for model_info in models:
                 assert "base_path" in model_info
                 assert "type" in model_info
-
         finally:
             os.chdir(original_cwd)
 
-    def test_get_available_models_identifies_types(self, fake_models_dir, monkeypatch, mock_get_available_models):
+    def test_get_available_models_identifies_types(self, fake_models_dir, mock_get_available_models):
         """Should correctly identify model types from filenames."""
         original_cwd = os.getcwd()
         try:
@@ -217,11 +241,10 @@ class TestAvailableModelsEndpoint:
             data = response.json()
             models = data["available_models"]
 
-            # Check that model types are identified
             xgb_models = [m for m in models if m["type"] == "xgboost"]
+            nn_models = [m for m in models if m["type"] == "neural-net"]
 
-            # Assuming the mock returns 2 models (xgboost and neural-net)
             assert len(xgb_models) == 1
-            assert len(models) == 2
+            assert len(nn_models) == 1
         finally:
             os.chdir(original_cwd)
