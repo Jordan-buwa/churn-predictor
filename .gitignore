@@ -21,7 +21,6 @@ test.sh
 .env.example
 note.ipynb
 tree.sh
-src/data_pipeline/preprocessing_artifacts*
 doc.sh
 test_end.py
 test.sh

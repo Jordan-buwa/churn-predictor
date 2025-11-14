@@ -1,0 +1,476 @@
+{
+  "potential_derived_source_cols": [
+    "outcalls",
+    "incalls",
+    "months",
+    "models",
+    "overage",
+    "revenue",
+    "mou",
+    "mourec",
+    "peakvce",
+    "opeakvce",
+    "dropvce",
+    "blckvce",
+    "unansvce",
+    "dropblk",
+    "custcare",
+    "retcalls",
+    "retaccpt",
+    "directas",
+    "recchrge",
+    "eqpdays",
+    "refurb",
+    "age1",
+    "age2",
+    "children",
+    "income",
+    "credita",
+    "creditaa",
+    "prizmub",
+    "prizmtwn",
+    "occprof",
+    "occcler",
+    "occcrft",
+    "occret",
+    "occself",
+    "ownrent",
+    "marryyes",
+    "pcown",
+    "creditcd",
+    "travel",
+    "truck",
+    "rv",
+    "changem",
+    "changer",
+    "newcelly",
+    "newcelln",
+    "refer"
+  ],
+  "feature_names": [
+    "churn",
+    "engagement_index",
+    "model_change_rate",
+    "overage_ratio",
+    "call_activity_score",
+    "call_quality_issues",
+    "cust_engagement_score",
+    "overuse_behavior",
+    "device_tenure_index",
+    "demographic_index"
+  ],
+  "numerical_features": [
+    "call_activity_score",
+    "device_tenure_index",
+    "model_change_rate",
+    "cust_engagement_score",
+    "engagement_index",
+    "call_quality_issues",
+    "overage_ratio",
+    "overuse_behavior",
+    "demographic_index"
+  ],
+  "categorical_features": [],
+  "target_column": "churn",
+  "drop_columns": [
+    "Unnamed: 0",
+    "X",
+    "customer",
+    "traintest",
+    "churndep"
+  ],
+  "label_encoders": {
+    "children": [
+      "0",
+      "1"
+    ],
+    "credita": [
+      "0",
+      "1"
+    ],
+    "creditaa": [
+      "0",
+      "1"
+    ],
+    "prizmrur": [
+      "0",
+      "1"
+    ],
+    "prizmub": [
+      "0",
+      "1"
+    ],
+    "prizmtwn": [
+      "0",
+      "1"
+    ],
+    "refurb": [
+      "0",
+      "1"
+    ],
+    "webcap": [
+      "0",
+      "1"
+    ],
+    "truck": [
+      "0",
+      "1"
+    ],
+    "rv": [
+      "0",
+      "1"
+    ],
+    "occprof": [
+      "0",
+      "1"
+    ],
+    "occcler": [
+      "0",
+      "1"
+    ],
+    "occcrft": [
+      "0",
+      "1"
+    ],
+    "occstud": [
+      "0",
+      "1"
+    ],
+    "occhmkr": [
+      "0",
+      "1"
+    ],
+    "occret": [
+      "0",
+      "1"
+    ],
+    "occself": [
+      "0",
+      "1"
+    ],
+    "ownrent": [
+      "0",
+      "1"
+    ],
+    "marryun": [
+      "0",
+      "1"
+    ],
+    "marryyes": [
+      "0",
+      "1"
+    ],
+    "mailord": [
+      "0",
+      "1"
+    ],
+    "mailres": [
+      "0",
+      "1"
+    ],
+    "mailflag": [
+      "0",
+      "1"
+    ],
+    "travel": [
+      "0",
+      "1"
+    ],
+    "pcown": [
+      "0",
+      "1"
+    ],
+    "creditcd": [
+      "0",
+      "1"
+    ],
+    "newcelly": [
+      "0",
+      "1"
+    ],
+    "newcelln": [
+      "0",
+      "1"
+    ],
+    "incmiss": [
+      "0",
+      "1"
+    ],
+    "mcycle": [
+      "0",
+      "1"
+    ],
+    "setprcm": [
+      "0",
+      "1"
+    ],
+    "retcall": [
+      "0",
+      "1"
+    ],
+    "retcalls": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "retaccpt": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "scaler_params": {
+    "mean": [
+      0.05085366025307191,
+      -1.1991998885382915,
+      46.870569788659914,
+      20.787253508241022,
+      114.93532572918203,
+      1.5617830450265318,
+      18.75082691739271,
+      1.853033910555041,
+      58.82141909804086,
+      525.242779430179,
+      1.8086055709600686,
+      31.45609244584571,
+      736.1644498782845,
+      4.72315256098076,
+      28.35590289756951,
+      380.2649232198404,
+      1.3516545385449068,
+      0.09029784412422251,
+      0.011837234676721044,
+      0.3001674975083818,
+      4.06783303337699,
+      10.149743597695371,
+      1.9387565056279084,
+      2.1888350172095556,
+      -10.80515128446655,
+      6.009967580986122,
+      1.8659173991209481,
+      4.334229453741889,
+      48.583447109628,
+      8.176798458335046,
+      1.5295508606978478,
+      90.58094640371283,
+      0.4287861661375029,
+      39.98106183251267,
+      63.86237762824652,
+      35.79858036033992,
+      25.396526243880995,
+      1.2173588964600617,
+      0.8920618028077751,
+      26.60688408236801,
+      67.81841833191805
+    ],
+    "scale": [
+      0.2904416495414051,
+      38.63288034301579,
+      23.878770395208907,
+      23.868962742264582,
+      166.30455888721534,
+      0.9082701438984111,
+      9.787499584988515,
+      5.556162671661289,
+      44.17962004091062,
+      529.3970821535491,
+      1.3361048878724344,
+      21.896264007219422,
+      771.7016132144247,
+      2.3926985613464766,
+      38.90397440156769,
+      254.2911829719242,
+      0.6600446745154783,
+      0.05158134106031568,
+      0.5621829291110161,
+      1.1615521344795279,
+      10.670710452648526,
+      15.46047269947782,
+      5.1901841087555045,
+      3.6503419475218437,
+      254.40939103497496,
+      9.006061205977986,
+      5.160725609102289,
+      3.1370409919799327,
+      60.36427523768671,
+      16.518942951759332,
+      1.131766075521711,
+      104.91412775527408,
+      0.6274356657254672,
+      96.22211684994349,
+      99.66764555937337,
+      57.04055931864058,
+      35.14726476805804,
+      9.067458981632315,
+      2.194638678312131,
+      21.244802054814144,
+      93.32833372486792
+    ],
+    "var": [
+      0.08435635178833238,
+      1492.4994435977758,
+      570.1956755871054,
+      569.7273823916148,
+      27657.20630667127,
+      0.8249546542972405,
+      95.79514812615035,
+      30.87094363396231,
+      1951.8388269592315,
+      280261.27059269167,
+      1.7851762713966108,
+      479.44637747385275,
+      595523.3798377456,
+      5.7250064054694985,
+      1513.5192242378337,
+      64664.00573726063,
+      0.43565897235624373,
+      0.002660634745580608,
+      0.3160496457838417,
+      1.3492033611139473,
+      113.86406156426251,
+      239.02621609129903,
+      26.938011082778168,
+      13.324996333837566,
+      64724.138246786795,
+      81.10913844582164,
+      26.633088812444186,
+      9.84102618536244,
+      3643.845724971197,
+      272.87547624347934,
+      1.2808944497018153,
+      11006.974202649972,
+      0.3936755146243602,
+      9258.695771084178,
+      9933.639571348878,
+      3253.6254073833547,
+      1235.3302206759736,
+      82.21881238358453,
+      4.816438928343619,
+      451.3416143482353,
+      8710.177875860318
+    ],
+    "n_samples_seen": 71047
+  },
+  "feature_engineering_params": {
+    "engagement_index": {
+      "required_columns": [
+        "outcalls",
+        "incalls",
+        "months"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.882257"
+    },
+    "model_change_rate": {
+      "required_columns": [
+        "models",
+        "months"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.883043"
+    },
+    "overage_ratio": {
+      "required_columns": [
+        "overage",
+        "revenue"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.883673"
+    },
+    "call_activity_score": {
+      "required_columns": [
+        "mou",
+        "mourec",
+        "outcalls",
+        "incalls",
+        "peakvce",
+        "opeakvce"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.884878"
+    },
+    "call_quality_issues": {
+      "required_columns": [
+        "dropvce",
+        "blckvce",
+        "unansvce",
+        "dropblk"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.885859"
+    },
+    "cust_engagement_score": {
+      "required_columns": [
+        "custcare",
+        "retcalls",
+        "retaccpt"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.886853"
+    },
+    "overuse_behavior": {
+      "required_columns": [
+        "overage",
+        "directas",
+        "recchrge"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.887498"
+    },
+    "device_tenure_index": {
+      "required_columns": [
+        "models",
+        "eqpdays",
+        "refurb"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.888223"
+    },
+    "demographic_index": {
+      "required_columns": [
+        "age1",
+        "age2",
+        "children",
+        "income"
+      ],
+      "operation": "custom",
+      "created_at": "2025-11-11T23:36:29.889097"
+    }
+  },
+  "numerical_fill_values": {
+    "revenue": 48.52999878,
+    "mou": 366.0,
+    "recchrge": 44.99000168,
+    "directas": 0.247500002,
+    "overage": 2.5,
+    "roam": 0.0,
+    "changem": -5.0,
+    "changer": -0.294999987,
+    "phones": 1.0,
+    "models": 1.0,
+    "eqpdays": 330.0,
+    "age1": 36.0,
+    "age2": 0.0
+  },
+  "categorical_fill_values": {},
+  "target_mapping": {},
+  "preprocessing_timestamp": "2025-11-11T23:39:08.254517",
+  "n_samples": 71047,
+  "n_features": 10,
+  "feature_dtypes": {
+    "churn": "int64",
+    "engagement_index": "float64",
+    "model_change_rate": "float64",
+    "overage_ratio": "float64",
+    "call_activity_score": "float64",
+    "call_quality_issues": "float64",
+    "cust_engagement_score": "float64",
+    "overuse_behavior": "float64",
+    "device_tenure_index": "float64",
+    "demographic_index": "float64"
+  }
+}

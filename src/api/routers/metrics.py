@@ -3,7 +3,8 @@ import os
 import joblib
 import json
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-
+from src.api.authenticator import get_current_active_user
+from src.api.db import UserCreate, UserRead, UserRole
 from src.api.utils.config import APIConfig, get_allowed_model_types, get_model_path
 from src.api.ml_models import load_single_model
 from src.api.utils.response_models import MetricsResponse, TestDataset
@@ -38,7 +39,8 @@ def load_model_by_type(model_type: str):
 
 
 @router.post("/{model_type}", response_model=MetricsResponse)
-def get_metrics(model_type: str):
+def get_metrics(model_type: str,
+            current_user = Depends(get_current_active_user)):
     """Calculate model performance metrics using standardized test data."""
     
     allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
