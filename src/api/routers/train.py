@@ -7,7 +7,7 @@ import sys
 import json
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Optional
 from pathlib import Path
 
@@ -28,7 +28,8 @@ if os.getenv("ENVIRONMENT") == "test":
     router = APIRouter(prefix="/train")
 else:
     from src.api.authenticator import current_active_user
-    router = APIRouter(prefix="/train", dependencies=[Depends(current_active_user)])
+    router = APIRouter(
+        prefix="/train", dependencies=[Depends(current_active_user)])
 
 router = APIRouter(prefix="/train")
 logger = logging.getLogger(__name__)
@@ -277,7 +278,7 @@ async def train_model_with_config_body(
                 "job_id": job_id,
                 "status": "pending",
                 "model_type": "all",
-                "started_at": datetime.utcnow().isoformat(),
+                "started_at": datetime.now(UTC).isoformat(),
                 "completed_at": None,
                 "sub_jobs": []
             }
