@@ -40,11 +40,23 @@ def clean_jobs():
 
 @pytest.fixture
 def fake_models_dir(tmp_path):
-    """Create a fake models directory with dummy model files."""
     models_dir = tmp_path / "models"
     models_dir.mkdir()
-    (models_dir / "model_xgboost.pkl").write_text("dummy content")
-    (models_dir / "model_neural_net.pkl").write_text("dummy content")
+
+    # Create directories for each model type
+    for model_type, filename in [
+        ("xgboost", "model_xgboost.pkl"),
+        ("neural-net", "model_neural_net.pth"),
+        ("random-forest", "model_random_forest.pkl")
+    ]:
+        model_dir = models_dir / model_type
+        model_dir.mkdir()
+        # Optional: create versions folder
+        versions_dir = model_dir / "versions"
+        versions_dir.mkdir()
+        # Create a dummy version file
+        (versions_dir / filename).write_text("dummy content")
+
     return models_dir
 
 
@@ -54,15 +66,18 @@ def mock_get_available_models(monkeypatch, fake_models_dir):
     def _mock():
         return {
             "available_models": [
-                {"base_path": str(fake_models_dir /
-                                  "model_xgboost.pkl"), "type": "xgboost"},
                 {"base_path": str(
-                    fake_models_dir / "model_neural_net.pkl"), "type": "neural-net"},
+                    fake_models_dir / "model_xgboost.pkl"), "model_type": "xgboost"},
+                {"base_path": str(
+                    fake_models_dir / "model_neural_net.pth"), "model_type": "neural-net"},
+                {"base_path": str(
+                    fake_models_dir / "model_random_forest.pkl"), "model_type": "random-forest"},
             ]
         }
     monkeypatch.setattr(
         "src.api.routers.train.get_available_models", _mock
     )
+    return _mock
 
 
 class TestJobStatusEndpoint:
@@ -182,9 +197,9 @@ class TestCancelJobEndpoint:
         training_jobs[job_id]["status"] = "running"
 
         response = client.delete(
-            f"/train/job/cancel/{job_id}")  # FIX: Corrected URL
+            f"/train/job/cancel/{job_id}")
 
-        assert response.status_code == 200  # FIX: Assert 200 for success
+        assert response.status_code == 200
         assert training_jobs[job_id]["status"] == "cancelled"
 
     def test_cancel_completed_job_fails(self, fake_script):
@@ -194,7 +209,7 @@ class TestCancelJobEndpoint:
         training_jobs[job_id]["status"] = "completed"
 
         response = client.delete(
-            f"/train/job/cancel/{job_id}")  # FIX: Corrected URL
+            f"/train/job/cancel/{job_id}")
 
         # FIX: Assert 400 for failure to cancel completed job
         assert response.status_code == 400
@@ -225,10 +240,10 @@ class TestAvailableModelsEndpoint:
             models = data["available_models"]
 
             assert isinstance(models, list)
-            assert len(models) == 2
+            assert len(models) == 3
             for model_info in models:
                 assert "base_path" in model_info
-                assert "type" in model_info
+                assert "model_type" in model_info
         finally:
             os.chdir(original_cwd)
 
@@ -241,10 +256,25 @@ class TestAvailableModelsEndpoint:
             data = response.json()
             models = data["available_models"]
 
-            xgb_models = [m for m in models if m["type"] == "xgboost"]
-            nn_models = [m for m in models if m["type"] == "neural-net"]
-
+            xgb_models = [m for m in models if m["model_type"] == "xgboost"]
+            nn_models = [m for m in models if m["model_type"] == "neural-net"]
+            rf_models = [m for m in models if m["model_type"]
+                         == "random-forest"]
             assert len(xgb_models) == 1
             assert len(nn_models) == 1
+            assert len(rf_models) == 1
+        finally:
+            os.chdir(original_cwd)
+
+    def test_get_available_models_identifies_types(self, fake_models_dir, mock_get_available_models):
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(fake_models_dir.parent)
+            response = client.get("/train/models/available")
+            data = response.json()
+            print(data)
+            models = data["available_models"]
         finally:
             os.chdir(original_cwd)
