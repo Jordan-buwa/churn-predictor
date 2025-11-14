@@ -70,7 +70,7 @@ def login(
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires  # ✅ Convertir en string
+        data={"sub": str(user.id)}, expires_delta=access_token_expires  
     )
     
     return {
@@ -84,7 +84,7 @@ def login(
 def refresh_token(current_user: User = Depends(get_current_user)):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(current_user.id)}, expires_delta=access_token_expires  # ✅ Convertir en string
+        data={"sub": str(current_user.id)}, expires_delta=access_token_expires  
     )
     
     return {
