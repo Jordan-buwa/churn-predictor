@@ -1,27 +1,22 @@
 from sqlalchemy import create_engine, select, Column, String, Enum as SQLAlchemyEnum
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
 from pwdlib import PasswordHash
 from typing import Optional
 from pydantic import ConfigDict, EmailStr, BaseModel
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Session
 from datetime import datetime
-
 import os
 from dotenv import load_dotenv
-
-load_dotenv()
-
 from enum import Enum
 
+load_dotenv()
 
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
     SUPERVISOR = "supervisor"
     GUEST = "guest"
-
 
 class UserCreate(BaseModel):
     username: str
@@ -30,7 +25,6 @@ class UserCreate(BaseModel):
     password: str
     role: UserRole
 
-
 class UserRead(BaseModel):
     id: int
     username: str
@@ -38,7 +32,6 @@ class UserRead(BaseModel):
     phone: str
     role: UserRole
     model_config = ConfigDict(from_attributes=True)
-
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -58,33 +51,37 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-# User model for authentication
+
+# User model for authentication - CORRIGÉ
 class User(SQLModel, table=True):
+    __tablename__ = "user"  # Nom explicite de la table
+    
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(sa_column=Column(String(50), nullable=False, index=True))
-    email: EmailStr = Field(sa_column=Column("email", String(255), unique=True, index=True))
+    email: str = Field(sa_column=Column(String(255), unique=True, index=True))
     phone: str = Field(sa_column=Column(String(20), unique=True, index=True)) 
     password: str = Field(sa_column=Column(String(255), nullable=False))
     role: UserRole = Field(sa_column=Column(SQLAlchemyEnum(UserRole), nullable=False)) 
     created_at: datetime | None = Field(default_factory=datetime.utcnow)
-    is_active: bool = Field(default=True) 
+    is_active: bool = Field(default=True)
 
-
-# Database dependency
+# Database dependency - CORRIGÉ pour utiliser Session de SQLModel
 def get_db():
-    db = SessionLocal()
+    db = Session(engine)
     try:
         yield db
     finally:
         db.close()
 
+# Créer les tables
+def create_tables():
+    SQLModel.metadata.create_all(engine)
+
 # Default admin user 
 pwd = PasswordHash.recommended()  
 
 def create_admin():
-    # Getting the next session of the generator
-    db = next(get_db())
+    db = Session(engine)
     try:
         existing_admin = db.exec(select(User).where(User.email == "admin@example.com")).first()
         
@@ -110,8 +107,8 @@ def create_admin():
     finally:
         db.close()
 
+# Appeler create_tables() au démarrage
+create_tables()
 
 if __name__ == "__main__":
     create_admin()
-
-

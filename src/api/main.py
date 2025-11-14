@@ -7,14 +7,15 @@ import sys, os
 from pathlib import Path
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+from sqlmodel import SQLModel
 load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
-from src.api.db import Base, engine
+from src.api.db import engine
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
 from src.api.utils.config import get_allowed_model_types 
-from src.api.template_context import get_template_context
+#from src.api.template_context import get_template_context
 
 logging.basicConfig(
     level=logging.INFO,
@@ -93,7 +94,7 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory="src/api/templates")  
 
-app.state.allowed_models = get_allowed_model_types()   
+app.state.allowed_models = get_allowed_model_types()  
 app.state.environment   = os.getenv("ENVIRONMENT", "development")
 
 
@@ -115,18 +116,21 @@ if os.getenv("ENVIRONMENT", "development") != "test":
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(ingest.router,  tags=["Data ingestion"])
     # Include auth router with prefix
-    app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    # app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    app.include_router(auth.router, tags=["auth"])
 else:
     from src.api.routers import predict, train
     app.include_router(predict.router, tags=["predictions"])
     app.include_router(train.router,   tags=["training"])
     logger.info("Test environment detected: including predict and train routers")
 
-
-@app.get("/auth/login", response_class=HTMLResponse)
+@app.get("/pages/register", response_class=HTMLResponse)
+async def get_register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+@app.get("/", response_class=HTMLResponse)
 async def get_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
-@app.get("/", response_class=HTMLResponse)
+@app.get("/home", response_class=HTMLResponse)
 async def ui_root(request: Request):
     """Home page – uses index.html"""
     return templates.TemplateResponse("index.html", {"request": request})
@@ -191,4 +195,4 @@ def on_startup():
     # Skip DB initialization in test environment to avoid external depends
     if os.getenv("ENVIRONMENT", "development") == "test":
         return 
-    Base.metadata.create_all(bind=engine)
+    SQLModel.metadata.create_all(bind=engine)

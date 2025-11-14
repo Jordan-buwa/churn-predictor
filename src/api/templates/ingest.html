@@ -446,6 +446,7 @@
 {% endblock %}
 
 {% block javascript %}
+{{ super() }}
 <script>
 // Single record form submission
 document.getElementById('singleForm').addEventListener('submit', async function(e) {

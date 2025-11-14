@@ -1,7 +1,7 @@
 import jwt
 import uuid
 import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
 from sqlalchemy.orm import Session
 from src.api.schemas import API_KEY_SECRET, verify_api_key, verify_password, hash_password
 from src.api.authenticator import get_current_user, create_access_token, get_current_active_user
@@ -9,6 +9,7 @@ from src.api.db import User, get_db, UserCreate, UserRead, UserUpdate
 from datetime import datetime, timedelta
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pwdlib import PasswordHash
+from sqlmodel import Session as SQLModelSession, select
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -19,10 +20,12 @@ router = APIRouter()
 
 # Registration route
 @router.post("/auth/register", response_model=UserRead)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+def register(user_data: UserCreate, db: SQLModelSession = Depends(get_db)):
     # Check if user already exists
-    existing_user = db.query(User).filter(
-        (User.email == user_data.email) | (User.username == user_data.username)
+    existing_user = db.exec(
+        select(User).where(
+            (User.email == user_data.email) | (User.username == user_data.username)
+        )
     ).first()
     
     if existing_user:
@@ -33,6 +36,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     # Create new user
     hashed_password = hash_password(user_data.password)
+    print("TEST REGISTER 1")
+    
     user = User(
         username=user_data.username,
         email=user_data.email,
@@ -43,19 +48,19 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     db.add(user)
     db.commit()
+    print("TEST REGISTER 2")
     db.refresh(user)
     
     return user
 
-
 # Login route
 @router.post("/auth/login")
 def login(
-    username: str,
-    password: str,
-    db: Session = Depends(get_db)
+    username: str = Form(...),
+    password: str = Form(...),
+    db: SQLModelSession = Depends(get_db)
 ):
-    user = db.query(User).filter(User.username == username).first()
+    user = db.exec(select(User).where(User.username == username)).first()
     
     if not user or not verify_password(password, user.password):
         raise HTTPException(
@@ -65,13 +70,13 @@ def login(
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires  # ✅ Convertir en string
     )
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserRead.from_orm(user)
+        "user": UserRead.model_validate(user)
     }
 
 # Refresh token
@@ -79,7 +84,7 @@ def login(
 def refresh_token(current_user: User = Depends(get_current_user)):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": current_user.id}, expires_delta=access_token_expires
+        data={"sub": str(current_user.id)}, expires_delta=access_token_expires  # ✅ Convertir en string
     )
     
     return {
@@ -90,13 +95,13 @@ def refresh_token(current_user: User = Depends(get_current_user)):
 # User information and update routes
 @router.get("/auth/me", response_model=UserRead)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+    return UserRead.model_validate(current_user)
 
 @router.put("/auth/me", response_model=UserRead)
 async def update_user_me(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: SQLModelSession = Depends(get_db)
 ):
     update_data = user_update.dict(exclude_unset=True)
     
@@ -107,7 +112,7 @@ async def update_user_me(
     for field, value in update_data.items():
         setattr(current_user, field, value)
     
+    db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    return current_user
-
+    return UserRead.model_validate(current_user)
