@@ -44,7 +44,7 @@ jobs:
 
             cd "$APP_DIR"
             git checkout main
-            git pull origin main
+            git fetch --all && git reset --hard origin/main
 
             # Create .env file from secrets
             cat > .env << 'EOF'
