@@ -40,6 +40,13 @@ def load_model_by_type(model_type: str):
 @router.post("/{model_type}", response_model=MetricsResponse)
 def get_metrics(model_type: str):
     """Calculate model performance metrics using standardized test data."""
+    
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role does not have access to prediction services"
+        )
     if model_type not in get_allowed_model_types():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
