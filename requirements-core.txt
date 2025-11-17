@@ -1,0 +1,37 @@
+# Core ML & Data Science
+pandas
+numpy
+scikit-learn
+scipy
+joblib
+evidently
+
+# Monitoring
+prometheus-client
+flask
+
+# API & Web
+fastapi[standard]
+uvicorn[standard]
+python-multipart
+PyYAML
+requests
+httpx
+
+# Database
+psycopg2-binary
+sqlalchemy
+sqlmodel
+alembic
+
+# Config & Validation
+python-dotenv
+pydantic
+great-expectations
+
+# Testing
+pytest
+pytest-asyncio
+requests-mock
+pytest-cov
+setuptools
