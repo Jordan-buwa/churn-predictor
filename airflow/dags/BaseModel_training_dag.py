@@ -32,10 +32,7 @@ default_args = {
     "retries": default_cfg.get("retries", 0),
     "retry_delay": timedelta(minutes=default_cfg.get("retry_delay_minutes", 5)),
 }
-
-# -----------------------------
 # Training functions
-# -----------------------------
 def train_rf(**kwargs):
     sys.path.append(str(Path(__file__).parents[1]))
     from src.models.train_rf import main as train_rf_main
@@ -51,9 +48,7 @@ def train_nn(**kwargs):
     from src.models.train_nn import main as train_nn_main
     train_nn_main()
 
-# -----------------------------
 # Load schedules dynamically from YAMLs
-# -----------------------------
 BASE_DIR = Path(__file__).parents[1]
 model_yamls = {
     "rf": BASE_DIR / "config" / "config_train_rf.yaml",
@@ -61,7 +56,7 @@ model_yamls = {
     "nn": BASE_DIR / "config" / "config_train_nn.yaml",
 }
 
-# Choose the smallest days among models to trigger combined DAG
+# Choosing the smallest days among models to trigger combined DAG
 days_list = [
     yaml_cfg.get("training_schedule", {}).get("days", 7)
     for yaml_cfg in (load_model_config(p) for p in model_yamls.values())
@@ -69,9 +64,7 @@ days_list = [
 min_days = min(days_list)
 schedule_interval = f"0 0 */{min_days} * *"  # run every min_days at 00:00
 
-# -----------------------------
 # DAG definition
-# -----------------------------
 with DAG(
     dag_id="train_all_models_combined",
     default_args=default_args,
