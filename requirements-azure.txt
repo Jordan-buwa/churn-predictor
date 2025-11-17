@@ -1,0 +1,7 @@
+azure-storage-blob
+opencensus-ext-azure
+opencensus-ext-logging
+azure-ai-ml
+azure-identity
+azure-mgmt-resource
+azure-mgmt-machinelearningservices
