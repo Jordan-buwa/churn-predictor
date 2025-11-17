@@ -43,29 +43,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # DATA PIPELINE Service
-  data-pipeline:
-    build:
-      context: .
-      dockerfile: docker/data_pipeline/Dockerfile
-    volumes:
-      - ./src:/app/src
-      - ./config:/app/config:ro
-      - data:/app/data 
-      - logs:/app/logs 
-    environment:
-      - PYTHONPATH=/app
-      - DATA_DIR=/app/data
-      - LOG_DIR=/app/logs
-      # Database access
-      - POSTGRES_HOST=${POSTGRES_HOST} 
-      - POSTGRES_DB_USER=${POSTGRES_DB_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    working_dir: /app
-    networks:
-      - churn-network
-    restart: "no" 
-
   # TRAINER Service
   trainer:
     build:

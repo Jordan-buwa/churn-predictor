@@ -8,18 +8,6 @@ WORKDIR /app
 
 # Install all required system dependencies for ML & Azure packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    gfortran \
-    cmake \
-    libpq-dev \
-    libssl-dev \
-    libffi-dev \
-    libatlas-base-dev \
-    liblapack-dev \
-    git \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
