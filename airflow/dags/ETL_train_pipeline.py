@@ -4,20 +4,27 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 import pandas as pd
-from src.data_pipeline import preprocess_data, validate_after_preprocess 
+
+# Import fetch_preprocessed from pipeline
+from src.data_pipeline.pipeline_data import fetch_preprocessed 
 
 # folder to save processed data
 PROCESSED_DATA_DIR = "data/processed"
 os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
 
 def run_preprocessing(**kwargs):
-    df_processed = preprocess_data()
-    df_validated = validate_after_preprocess(df_processed)
+    """
+    Run preprocessing using fetch_preprocessed from src/data_pipeline/pipeline.py
+    """
+    df_processed = fetch_preprocessed()  
     # store in XCom for downstream tasks
-    kwargs['ti'].xcom_push(key='validated_df', value=df_validated.to_dict())
+    kwargs['ti'].xcom_push(key='validated_df', value=df_processed.to_dict())
     return "Preprocessing done"
 
 def store_processed_data(**kwargs):
+    """
+    Store processed data locally
+    """
     # pull validated data from XCom
     ti = kwargs['ti']
     validated_df_dict = ti.xcom_pull(key='validated_df', task_ids='preprocess_and_validate')
@@ -51,4 +58,3 @@ with DAG(
 
     # DAG flow
     preprocess_and_validate >> store_data
-
