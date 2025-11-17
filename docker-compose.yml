@@ -1,115 +1,44 @@
-version: '3.8'
-
 services:
-  # Main Application Service (API)
+  # FastAPI
   api:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
     container_name: churn-api-jaw
     restart: unless-stopped
-    # NOTE: Changed port mapping to 80:8000 to serve on the standard HTTP port 80,
-    # mapping to the container's application port 8000.
     ports:
-      - "80:8000"
-    
-    volumes:
-      - models:/app/models
-      - artifacts:/app/artifacts
-      - logs:/app/logs
-      - mlruns:/app/mlruns
-      # Keep these mounts for configuration and source code if needed for workers
-      - ./config:/app/config:ro
-      
+      - "8000:8000"
     environment:
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
-      - POSTGRES_DB_USER=${POSTGRES_DB_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      # Required secrets for authentication and ML tracking
-      - AUTH_SECRET=${AUTH_SECRET}
+      - POSTGRES_DB_USER=${POSTGRES_DB_USER}
+      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}               
       - API_KEY_SECRET=${API_KEY_SECRET}
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      # Azure Credentials
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_TENANT_ID=${AZURE_TENANT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-    networks:
-      - churn-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # TRAINER Service
   trainer:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
     command: python retrain.py
     environment:
-      # Database and MLflow access
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_DB_USER=${POSTGRES_DB_USER}
+      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}   
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      # Azure Credentials
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_TENANT_ID=${AZURE_TENANT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-    volumes:
-      - mlruns:/app/mlruns 
-    networks:
-      - churn-network
-    restart: "no"
-
-  # PROMETHEUS Monitoring Collector
-  prometheus:
-    image: prom/prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prom_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    networks:
-      - churn-network
-    depends_on:
-      - api 
-
-  # GRAFANA Visualization
-  grafana:
-    image: grafana/grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      # This dashboard file must still be local to the VM
-      - ./grafana_dashboard.json:/etc/grafana/provisioning/dashboards/drift_dashboard.json
-      - grafana_data:/var/lib/grafana
-    networks:
-      - churn-network
-    depends_on:
-      - prometheus
-
-networks:
-  churn-network:
-    driver: bridge
-
-volumes:
-  prom_data:
-  grafana_data:
-  models:
-  artifacts:
-  data:
-  logs:
-  mlruns:
+    deploy:
+      replicas: 1   
