@@ -1,21 +1,29 @@
+# Base Image
 FROM python:3.11-slim
 
-# Set working directory
+# Set environment variables for path
+ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install critical system dependencies:
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Copy requirements file first to leverage Docker caching
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code, configuration, and necessary files
 COPY src/ ./src/
 COPY models ./models
-COPY data/ ./data
-
 COPY retrain.py .
 
 # Set Python path
@@ -24,5 +32,5 @@ ENV PYTHONPATH=/app
 # Expose API port
 EXPOSE 8000
 
-# Use CMD with runtime environment variables (do NOT hardcode secrets)
+# Default command for the API service (using secure runtime variables)
 CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

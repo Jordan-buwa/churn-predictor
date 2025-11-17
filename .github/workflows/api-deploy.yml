@@ -26,6 +26,20 @@ jobs:
 
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v0.1.10
+        env:
+          ENVIRONMENT: "production"
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
+          POSTGRES_DB_USER: ${{ secrets.POSTGRES_DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          API_KEY_SECRET: ${{ secrets.API_KEY_SECRET }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          DATABASE_URL: postgresql://${{ secrets.POSTGRES_DB_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB_NAME }}?sslmode=require
+
         with:
           host: ${{ secrets.AZURE_HOST }}
           username: ${{ secrets.AZURE_USER }}
@@ -45,32 +59,30 @@ jobs:
             cd "$APP_DIR"
             git checkout main
             git fetch --all && git reset --hard origin/main
+            
+            # 1. Inject Secrets into the shell environment
+            # This makes the variables available to the 'docker compose' command
+            echo "Exporting ephemeral environment variables..."
+            
+            export ENVIRONMENT="${{ env.ENVIRONMENT }}"
+            export POSTGRES_HOST="${{ env.POSTGRES_HOST }}"
+            export POSTGRES_PORT="${{ env.POSTGRES_PORT }}"
+            export POSTGRES_DB_NAME="${{ env.POSTGRES_DB_NAME }}"
+            export POSTGRES_DB_USER="${{ env.POSTGRES_DB_USER }}"
+            export POSTGRES_PASSWORD="${{ env.POSTGRES_PASSWORD }}"
+            export MLFLOW_TRACKING_URI="${{ env.MLFLOW_TRACKING_URI }}"
+            export API_KEY_SECRET="${{ env.API_KEY_SECRET }}"
+            export AZURE_CLIENT_ID="${{ env.AZURE_CLIENT_ID }}"
+            export AZURE_TENANT_ID="${{ env.AZURE_TENANT_ID }}"
+            export AZURE_CLIENT_SECRET="${{ env.AZURE_CLIENT_SECRET }}"
+            export DATABASE_URL="${{ env.DATABASE_URL }}"
 
-            # Create .env file from secrets
-            cat > .env << 'EOF'
-            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
-            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
-            POSTGRES_DB_NAME=${{ secrets.POSTGRES_DB_NAME }}
-            POSTGRES_DB_USER=${{ secrets.POSTGRES_DB_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-
-            DATABASE_URL=postgresql://${{ secrets.POSTGRES_DB_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB_NAME }}?sslmode=require
-
-            MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
-            API_KEY_SECRET=${{ secrets.API_KEY_SECRET }}
-
-            AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-            AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-            AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-            EOF
-
-            echo ".env created."
-
-            # Restart services
+            # 2. Restart services
             docker compose down --remove-orphans --volumes || true
 
-            # Build and start new services
-            echo "Building and starting services..."
+            # 3. Build and start new services
+            # docker compose will automatically use the exported environment variables
+            echo "Building and starting services with secure environment variables..."
             docker compose build --no-cache 
             docker compose up -d
 
