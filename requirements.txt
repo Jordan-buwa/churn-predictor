@@ -1,12 +1,10 @@
 # Core ML & Data Science
-dvc[azure]
 pandas
 numpy
 scikit-learn
 scipy
 joblib
 evidently
-pytest
 # monitoring using grafana
 prometheus-client
 flask
@@ -42,7 +40,6 @@ optuna
 optuna-integration[mlflow]
 
 # Configuration & Validation
-pyyaml
 python-dotenv
 pydantic
 great-expectations

@@ -1,8 +1,9 @@
 # Build stage
 FROM python:3.11-slim AS build
 WORKDIR /app
-RUN apt-get update && apt-get install -y build-essential gcc g++ gfortran cmake \
-    libpq-dev libssl-dev libffi-dev libatlas3-base liblapack-dev git curl \
+
+# Install all required system dependencies for ML & Azure packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
