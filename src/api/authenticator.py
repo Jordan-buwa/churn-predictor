@@ -18,6 +18,7 @@ ALGORITHM = "HS256"
 security = HTTPBearer()
 router = APIRouter()
 
+
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
@@ -28,6 +29,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -37,22 +39,24 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(credentials.credentials,
+                             SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
-    
+
     user = db.get(User, user_id)
     if user is None:
         raise credentials_exception
     return user
 
+
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if not current_user.is_active:  
+    if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 

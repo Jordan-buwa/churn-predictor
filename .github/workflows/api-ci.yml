@@ -1,11 +1,14 @@
 name: CI/CD TEST Pipeline
-run-name: CI/CD Pipeline - by  @${{ github.actor }}
+run-name: CI/CD Pipeline - by @${{ github.actor }}
+
 on:
   push:
     branches: ["main"]
     paths: 
       - '**/*.py'
       - 'requirements.txt'
+      - 'Dockerfile*'
+      - 'docker-compose.yml'
       - '.github/workflows/**'
   pull_request:
     branches: ["jordan_branch"]
@@ -16,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
@@ -30,3 +33,10 @@ jobs:
 
       - name: Run tests
         run: pytest
+      
+      #  Validate Docker Build 
+      - name: Build Docker Image (Validation Only)
+        run: |
+          # Use a generic tag just to confirm the build succeeds
+          docker build -t churn-predictor:ci-test .
+        
