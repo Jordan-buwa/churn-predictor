@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libssl-dev \
     libffi-dev \
-    libatlas-base-dev \
+    libatlas3-base \
     liblapack-dev \
     git \
     curl \
