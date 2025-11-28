@@ -1,7 +1,5 @@
-azure-storage-blob
-opencensus-ext-azure
-opencensus-ext-logging
-azure-ai-ml
-azure-identity
-azure-mgmt-resource
-azure-mgmt-machinelearningservices
+azure-storage-blob==12.18.2
+azure-ai-ml==1.17.0
+azure-identity==1.16.0
+azure-mgmt-resource==23.0.0
+azure-mgmt-machinelearningservices==2.18.0
