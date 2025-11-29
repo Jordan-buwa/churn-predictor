@@ -154,7 +154,7 @@ async def ui_ingest(request: Request):
 async def ui_predict(request: Request):
     return templates.TemplateResponse("predict.html", {"request": request})
 
-@app.get("/train-page", response_class=HTMLResponse)
+@app.get("/train", response_class=HTMLResponse)
 async def ui_train(request: Request):
     return templates.TemplateResponse("train.html", {"request": request})
 

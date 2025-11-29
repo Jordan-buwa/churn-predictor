@@ -65,15 +65,11 @@ if os.getenv("ENVIRONMENT") == "test":
     mock_user.role = "admin"
     router = APIRouter(prefix="/train")
 else:
-<<<<<<< HEAD
-    router = APIRouter(prefix="/train")
-=======
     # Router uses auto_admin_user globally for context injection
     router = APIRouter(
         prefix="/train"
     )
 
->>>>>>> 81f3e0a5daddbfc04d85dada7344f855f627f997
 logger = logging.getLogger(__name__)
 
 # Initialize configuration
