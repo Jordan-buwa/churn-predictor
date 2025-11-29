@@ -1,9 +1,14 @@
+from src.api.utils.config import get_allowed_model_types
+from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
+from src.api.db import engine
+from src.api.ml_models import load_all_models, clear_models, get_all_models_info
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.templating import Jinja2Templates   
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import sys, os
+import sys
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -11,11 +16,7 @@ from sqlmodel import SQLModel
 load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.api.ml_models import load_all_models, clear_models, get_all_models_info
-from src.api.db import engine
-from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
-from src.api.utils.config import get_allowed_model_types 
-#from src.api.template_context import get_template_context
+# from src.api.template_context import get_template_context
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,13 +24,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def validate_startup():
     try:
         logger.info("Running startup validation...")
         from src.api.utils.setup_validator import validate_api_setup
         success, errors, warnings = validate_api_setup()
-        for w in warnings: logger.warning(f"Startup warning: {w}")
-        for e in errors:   logger.error(f"Startup error: {e}")
+        for w in warnings:
+            logger.warning(f"Startup warning: {w}")
+        for e in errors:
+            logger.error(f"Startup error: {e}")
         if not success:
             logger.error("Startup validation failed with critical errors")
             return False
@@ -59,7 +63,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Model loading error: {e}")
         logger.warning("API will start – some endpoints may be unavailable")
 
-    yield   
+    yield
 
     logger.info("Shutting down API server...")
     try:
@@ -79,7 +83,7 @@ app = FastAPI(
 origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000"
-    ]
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -92,13 +96,14 @@ app.add_middleware(
 
 # templates
 
-templates = Jinja2Templates(directory="src/api/templates")  
+templates = Jinja2Templates(directory="src/api/templates")
 
-app.state.allowed_models = get_allowed_model_types()  
-app.state.environment   = os.getenv("ENVIRONMENT", "development")
+app.state.allowed_models = get_allowed_model_types()
+app.state.environment = os.getenv("ENVIRONMENT", "development")
 
 
 app.add_exception_handler(Exception, api_exception_handler)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -108,15 +113,14 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error", "error": str(exc)}
     )
 
+# INCLUDE ROUTERS FIRST (before app routes) so they take priority
 if os.getenv("ENVIRONMENT", "development") != "test":
     from src.api.routers import predict, train, validate, metrics, ingest, auth
     app.include_router(predict.router, tags=["predictions"])
     app.include_router(train.router,   tags=["training"])
-    app.include_router(validate.router,tags=["Data Validation"])
+    app.include_router(validate.router, tags=["Data Validation"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(ingest.router,  tags=["Data ingestion"])
-    # Include auth router with prefix
-    # app.include_router(auth.router, prefix="/auth", tags=["auth"])
     app.include_router(auth.router, tags=["auth"])
 else:
     from src.api.routers import predict, train
@@ -124,20 +128,27 @@ else:
     app.include_router(train.router,   tags=["training"])
     logger.info("Test environment detected: including predict and train routers")
 
+
 @app.get("/pages/register", response_class=HTMLResponse)
 async def get_register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
+
+
 @app.get("/", response_class=HTMLResponse)
 async def get_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
 @app.get("/home", response_class=HTMLResponse)
 async def ui_root(request: Request):
     """Home page – uses index.html"""
     return templates.TemplateResponse("index.html", {"request": request})
 
+
 @app.get("/ingest", response_class=HTMLResponse)
 async def ui_ingest(request: Request):
     return templates.TemplateResponse("ingest.html", {"request": request})
+
 
 @app.get("/predict", response_class=HTMLResponse)
 async def ui_predict(request: Request):
@@ -147,22 +158,26 @@ async def ui_predict(request: Request):
 async def ui_train(request: Request):
     return templates.TemplateResponse("train.html", {"request": request})
 
+
 @app.get("/metrics", response_class=HTMLResponse)
 async def ui_metrics(request: Request):
     return templates.TemplateResponse("metrics.html", {"request": request})
+
 
 @app.get("/data_view", response_class=HTMLResponse)
 async def ui_data_view(request: Request):
     return templates.TemplateResponse("data_view.html", {"request": request})
 
+
 @app.get("/health-ui", response_class=HTMLResponse)
 async def health_ui(request: Request):
     """Human-readable health page (uses health.html)"""
-    health_data = await health_check()                 
+    health_data = await health_check()
     return templates.TemplateResponse(
         "health.html",
         {"request": request, "data": health_data}
     )
+
 
 @app.get("/health")
 async def health_check():
@@ -177,6 +192,7 @@ async def health_check():
         "version": "2.0.0"
     }
 
+
 @app.get("/models")
 async def get_models_status():
     return {"models": get_all_models_info()}
@@ -190,9 +206,11 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+
+
 @app.on_event("startup")
 def on_startup():
     # Skip DB initialization in test environment to avoid external depends
     if os.getenv("ENVIRONMENT", "development") == "test":
-        return 
+        return
     SQLModel.metadata.create_all(bind=engine)

@@ -1,0 +1,10 @@
+# ML Frameworks
+xgboost==2.0.3
+torch==2.2.1
+torchvision==0.17.1
+imbalanced-learn==0.12.2
+
+# ML Tracking & Experimentation
+mlflow==2.12.1
+optuna==3.6.1
+optuna-integration[mlflow]==3.5.0
