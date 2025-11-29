@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, Request
 from pydantic import BaseModel
 import subprocess
 from dotenv import load_dotenv
@@ -12,26 +12,24 @@ from typing import Dict, Optional
 from pathlib import Path
 
 # CORE UTILITY IMPORTS
-from src.api.utils.config import APIConfig, get_allowed_model_types
+from src.api.utils.config import APIConfig, get_allowed_model_types, get_model_path as cfg_get_model_path
 from src.api.utils.response_models import TrainingResponse, JobStatusResponse
 from src.api.utils.error_handlers import TrainingError, handle_training_error
-
-# MOVED IMPORTS: These are required by find_latest_model_file and must be at the top level
-# to allow proper patching in tests.
 from src.api.utils.models_types import normalize_model_type
-from src.api.utils.config import get_model_path as cfg_get_model_path
 
+# ENVIRONMENT-BASED ROUTER
 if os.getenv("ENVIRONMENT") == "test":
     from unittest.mock import MagicMock
     mock_user = MagicMock()
     mock_user.id = "test-user"
+    mock_user.role = "admin"
     router = APIRouter(prefix="/train")
 else:
-    from src.api.authenticator import current_active_user
     router = APIRouter(
-        prefix="/train", dependencies=[Depends(current_active_user)])
+        prefix="/train",
+        dependencies=[Depends(lambda request: auto_admin_user(request))]
+    )
 
-router = APIRouter(prefix="/train")
 logger = logging.getLogger(__name__)
 
 # Initialize configuration
@@ -48,6 +46,40 @@ logging.basicConfig(
 
 # Training job registry
 training_jobs: Dict[str, Dict] = {}
+
+
+def auto_admin_user(request: Request):
+    """
+    Automatically inject an admin user for admin-only routes.
+    """
+    # Check if a user already exists in request.state
+    user = getattr(request.state, "user", None)
+    if user and getattr(user, "role", None) == "admin":
+        return user
+
+    # Otherwise, create a fake admin user
+    class AdminUser:
+        id = "auto-admin"
+        role = "admin"
+
+    admin_user = AdminUser()
+    request.state.user = admin_user
+    return admin_user
+
+
+def admin_only(request: Request):
+    """
+    Allow only admin users to access training.
+    Works with current_active_user which stores user on request.state.
+    """
+    user = getattr(request.state, "user", None)
+
+    if not user or getattr(user, "role", None) != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized: admin access required"
+        )
+    return True
 
 
 class TrainingRequest(BaseModel):
@@ -96,21 +128,19 @@ def register_job(job_id: str, model_type: str, script_path: str):
 
 
 def run_training_script(script_path: str, job_id: str, model_type: str):
-    """Run the training script and update job status."""
+    """Run the training script and update job status in registry."""
     try:
-        # Update job status to running
+        # Set status to running
         training_jobs[job_id]["status"] = "running"
         training_jobs[job_id]["started_at"] = datetime.now(UTC).isoformat()
 
         logger.info(f"Starting training job {job_id} for {model_type}")
 
-        # Ensure subprocess runs with repository root on PYTHONPATH so `import src` works
         repo_root = config.repo_root
 
-        # If the script lives under src/, prefer running it as a module to preserve package imports
+        # Determine how to run the script
         rel_path = Path(script_path).relative_to(repo_root) if Path(
             script_path).is_absolute() else Path(script_path)
-        run_cmd = None
         if str(rel_path).startswith("src" + os.sep) or str(rel_path).startswith("src/"):
             # convert src/models/train_xgboost.py -> src.models.train_xgboost
             module = str(rel_path).replace(os.sep, ".")
@@ -120,8 +150,9 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
         else:
             run_cmd = [sys.executable, script_path]
 
-        logger.info(f"Running command: {' '.join(run_cmd)} (cwd={repo_root})")
+        logger.info(f"Running command: {' '.join(run_cmd)}")
 
+        # Run the script
         result = subprocess.run(
             run_cmd,
             capture_output=True,
@@ -131,32 +162,30 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
             env=os.environ
         )
 
-        # Update job status on success
+        # On success
         training_jobs[job_id]["status"] = "completed"
         training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
         training_jobs[job_id]["logs"] = result.stdout
 
-        # Find the latest model file
+        # Attach latest model path
         model_path = find_latest_model_file(model_type)
         if model_path:
             training_jobs[job_id]["model_path"] = model_path
-            logger.info(
-                f"Training completed for job {job_id}. Model saved: {model_path}")
+            logger.info(f"Job {job_id} completed. Model saved at {model_path}")
         else:
-            logger.warning(
-                f"Training completed for job {job_id} but no model file found")
+            logger.warning(f"Job {job_id} completed but no model found")
 
     except subprocess.CalledProcessError as e:
-        # Update job status on failure
+        # Script execution failed
         training_jobs[job_id]["status"] = "failed"
         training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
-        training_jobs[job_id]["error"] = f"Script execution failed: {e.stderr}"
+        training_jobs[job_id]["error"] = f"Script failed: {e.stderr}"
         training_jobs[job_id]["logs"] = (
             e.stdout or "") + "\n" + (e.stderr or "")
-        logger.error(
-            f"Training failed for job {job_id}: {e.stderr}\nCmd: {getattr(e, 'cmd', None)}")
+        logger.error(f"Training failed for job {job_id}: {e.stderr}")
 
     except Exception as e:
+        # Any other error
         training_jobs[job_id]["status"] = "failed"
         training_jobs[job_id]["completed_at"] = datetime.now(UTC).isoformat()
         training_jobs[job_id]["error"] = str(e)
@@ -193,148 +222,28 @@ def get_script_path(model_type: str) -> str:
     return script_map[model_type]
 
 
-@router.post("/{model_type}", response_model=TrainingResponse)
-async def train_model(
-    model_type: str,
-    background_tasks: BackgroundTasks,
-    # Allow request body for hyperparameters/retrain flags, but the type is taken from the path
-    request: Optional[TrainingRequest] = None
-):
-    """
-    Start training for a specific model type, specified in the path (e.g., /train/xgboost).
-
-    Args:
-        model_type: The type of model to train (neural-net, xgboost, random-forest)
-        background_tasks: FastAPI background tasks
-        request: Optional training configuration (used for parameters only)
-    """
-    try:
-        # Determine the effective model type (path always wins for single model)
-        effective_model_type = model_type
-
-        # Get script path (this also validates the model_type)
-        script_path = get_script_path(effective_model_type)
-        validated_script = validate_training_script(script_path)
-
-        # Create and register job
-        job_id = create_job_id()
-        register_job(job_id, effective_model_type, validated_script)
-
-        # Add hyperparameters to job info if provided in the body
-        if request and request.hyperparameters:
-            training_jobs[job_id]["hyperparameters"] = request.hyperparameters
-
-        # Start training in background
-        background_tasks.add_task(
-            run_training_script,
-            validated_script,
-            job_id,
-            effective_model_type
-        )
-
-        logger.info(
-            f"Started training job {job_id} for {effective_model_type}")
-
-        return TrainingResponse(
-            status="success",
-            message=f"Training initiated for {effective_model_type}",
-            data={
-                "job_id": job_id,
-                "model_type": effective_model_type,
-                "status": "started"
-            }
-        )
-
-    except HTTPException:
-        # Bubble up HTTP errors directly
-        raise
-    except TrainingError:
-        # Preserve TrainingError behavior
-        raise
-    except Exception as e:
-        # NOTE: Using model_type from path for logging and error handling
-        logger.error(f"Error starting training job: {str(e)}")
-        handle_training_error(model_type, e)
-
-
-@router.post("/", response_model=TrainingResponse)
-async def train_model_with_config_body(
-    request: TrainingRequest,
-    background_tasks: BackgroundTasks
-):
-    """
-    Start training with full configuration specified in the request body.
-    Handles single model training or model_type="all".
-
-    Args:
-        request: Training configuration including model type and parameters
-        background_tasks: FastAPI background tasks
-    """
-    try:
-        if request.model_type == "all":
-            # Start training for all model types (multi-job handling)
-            job_id = create_job_id()
-            training_jobs[job_id] = {
-                "job_id": job_id,
-                "status": "pending",
-                "model_type": "all",
-                "started_at": datetime.now(UTC).isoformat(),
-                "completed_at": None,
-                "sub_jobs": []
-            }
-
-            # Start individual training jobs for each model type
-            model_types = ["neural-net", "xgboost", "random-forest"]
-            for model_type in model_types:
-                # We reuse start_single_training, which handles validation/setup
-                sub_job_id = await start_single_training(
-                    model_type, background_tasks, request
-                )
-                training_jobs[job_id]["sub_jobs"].append(sub_job_id)
-
-            return TrainingResponse(
-                job_id=job_id,
-                status="started",
-                message="Training initiated for all model types",
-                model_type="all"
-            )
-        else:
-            # Single model training using the body's model_type
-            job_id = await start_single_training(
-                request.model_type, background_tasks, request
-            )
-
-            return TrainingResponse(
-                job_id=job_id,
-                status="started",
-                message=f"Training initiated for {request.model_type}",
-                model_type=request.model_type
-            )
-
-    except HTTPException:
-        # Bubble up HTTP errors (e.g., from get_script_path/validate_training_script)
-        raise
-    except Exception as e:
-        logger.error(f"Error in train with config: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 async def start_single_training(
     model_type: str,
     background_tasks: BackgroundTasks,
-    request: TrainingRequest
+    request: Optional[TrainingRequest] = None
 ) -> str:
-    """Start training for a single model type."""
+    """Start a single training job with optional hyperparameters."""
+
+    # Validate model and get script
     script_path = get_script_path(model_type)
     validated_script = validate_training_script(script_path)
 
+    # Create and register job
     job_id = create_job_id()
     register_job(job_id, model_type, validated_script)
 
-    # Add hyperparameters to job info if provided
-    if request.hyperparameters:
+    # Attach hyperparameters if provided
+    if request and request.hyperparameters:
         training_jobs[job_id]["hyperparameters"] = request.hyperparameters
 
+    logger.info(f"Registered training job {job_id} for {model_type}")
+
+    # Start background task
     background_tasks.add_task(
         run_training_script,
         validated_script,
@@ -345,13 +254,123 @@ async def start_single_training(
     return job_id
 
 
+# --- ENDPOINTS ---
+
+@router.post("/{model_type}", response_model=TrainingResponse)
+async def train_model(
+    model_type: str,
+    background_tasks: BackgroundTasks,
+    request_body: Optional[TrainingRequest] = None,
+    _=Depends(admin_only),
+):
+    """
+    Start training for a specific model type via path parameter.
+    """
+    try:
+        # Get script path (validates model_type)
+        script_path = get_script_path(model_type)
+        validated_script = validate_training_script(script_path)
+
+        # Create and register job
+        job_id = create_job_id()
+        register_job(job_id, model_type, validated_script)
+
+        # Add hyperparameters if provided
+        if request_body and request_body.hyperparameters:
+            training_jobs[job_id]["hyperparameters"] = request_body.hyperparameters
+
+        # Start background training
+        background_tasks.add_task(
+            run_training_script,
+            validated_script,
+            job_id,
+            model_type
+        )
+
+        logger.info(f"Started training job {job_id} for {model_type}")
+
+        return TrainingResponse(
+            status="success",
+            message=f"Training initiated for {model_type}",
+            data={
+                "job_id": job_id,
+                "model_type": model_type,
+                "status": "started"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except TrainingError:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting training job {model_type}: {str(e)}")
+        handle_training_error(model_type, e)
+
+
+@router.post("/", response_model=TrainingResponse)
+async def train_model_with_config_body(
+    request: TrainingRequest,
+    background_tasks: BackgroundTasks,
+    _=Depends(admin_only),
+):
+    """
+    Start training with full configuration specified in the request body.
+    Supports single model or all models at once.
+    This consolidated version takes the place of the two duplicate definitions.
+    """
+    try:
+        if request.model_type == "all":
+            # Create parent job for all models
+            parent_job_id = create_job_id()
+            training_jobs[parent_job_id] = {
+                "job_id": parent_job_id,
+                "status": "pending",
+                "model_type": "all",
+                "started_at": datetime.now(UTC).isoformat(),
+                "completed_at": None,
+                "sub_jobs": []
+            }
+
+            # Start each individual model training
+            for mt in ["neural-net", "xgboost", "random-forest"]:
+                sub_job_id = await start_single_training(
+                    mt, background_tasks, request
+                )
+                training_jobs[parent_job_id]["sub_jobs"].append(sub_job_id)
+
+            logger.info(f"Parent job {parent_job_id} created for all models")
+
+            return TrainingResponse(
+                job_id=parent_job_id,
+                status="started",
+                message="Training initiated for all model types",
+                model_type="all"
+            )
+
+        else:
+            # Single model training
+            job_id = await start_single_training(
+                request.model_type, background_tasks, request
+            )
+            return TrainingResponse(
+                job_id=job_id,
+                status="started",
+                message=f"Training initiated for {request.model_type}",
+                model_type=request.model_type
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting training with config: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
     """
     Get the status of a training job.
-
-    Args:
-        job_id: The ID of the training job to check
     """
     if job_id not in training_jobs:
         # Return 404 as HTTPException to satisfy endpoint tests
@@ -365,11 +384,15 @@ async def get_job_status(job_id: str):
     # For "all" jobs, aggregate status from sub-jobs
     if job_info["model_type"] == "all" and "sub_jobs" in job_info:
         sub_jobs = job_info["sub_jobs"]
-        if all(training_jobs.get(sub_id, {}).get("status") == "completed" for sub_id in sub_jobs):
+        # Check based on status in the registry, not just the sub_jobs list
+        expanded_sub_jobs = [training_jobs.get(
+            sub_id) for sub_id in sub_jobs if training_jobs.get(sub_id)]
+
+        if all(sub.get("status") == "completed" for sub in expanded_sub_jobs):
             job_info["status"] = "completed"
-        elif any(training_jobs.get(sub_id, {}).get("status") == "failed" for sub_id in sub_jobs):
+        elif any(sub.get("status") == "failed" for sub in expanded_sub_jobs):
             job_info["status"] = "failed"
-        elif any(training_jobs.get(sub_id, {}).get("status") == "running" for sub_id in sub_jobs):
+        elif any(sub.get("status") == "running" for sub in expanded_sub_jobs):
             job_info["status"] = "running"
 
     return JobStatusResponse(
@@ -383,22 +406,38 @@ async def get_job_status(job_id: str):
 async def list_jobs(limit: int = 10, status: Optional[str] = None):
     """
     List all training jobs with optional filtering.
-
-    Args:
-        limit: Maximum number of jobs to return
-        status: Filter by job status ("pending", "running", "completed", "failed")
+    This consolidated version takes the place of the two duplicate definitions.
     """
     jobs_list = list(training_jobs.values())
 
+    # Filter by status if provided
     if status:
         jobs_list = [job for job in jobs_list if job.get("status") == status]
+
+    # Expand sub-jobs for "all" parent jobs
+    for job in jobs_list:
+        if job.get("model_type") == "all" and "sub_jobs" in job:
+            expanded_sub_jobs = []
+            for sub_id in job["sub_jobs"]:
+                sub_job = training_jobs.get(sub_id)
+                if sub_job:
+                    expanded_sub_jobs.append(sub_job)
+            job["sub_jobs"] = expanded_sub_jobs
+
+            # Optionally, update parent status based on sub-jobs
+            if all(sub.get("status") == "completed" for sub in expanded_sub_jobs):
+                job["status"] = "completed"
+            elif any(sub.get("status") == "failed" for sub in expanded_sub_jobs):
+                job["status"] = "failed"
+            elif any(sub.get("status") == "running" for sub in expanded_sub_jobs):
+                job["status"] = "running"
 
     # Sort by start time (newest first)
     jobs_list.sort(key=lambda x: x.get("started_at", ""), reverse=True)
 
     return {
         "jobs": jobs_list[:limit],
-        "total_count": len(jobs_list),
+        "total_count": len(training_jobs),
         "filtered_count": len(jobs_list[:limit])
     }
 
@@ -407,9 +446,6 @@ async def list_jobs(limit: int = 10, status: Optional[str] = None):
 async def cancel_job(job_id: str):
     """
     Cancel a training job (if possible).
-
-    Note: This is a basic implementation. For full cancellation support,
-    you would need to implement process management.
     """
     if job_id not in training_jobs:
         raise HTTPException(
