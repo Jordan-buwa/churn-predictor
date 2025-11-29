@@ -103,14 +103,14 @@
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
 
             // Show job status section if job was started
-            if (data.job_id) {
-                document.getElementById('jobId').textContent = data.job_id;
-                document.getElementById('statusText').textContent = 'started';
+            if (data.data && data.data.job_id) {
+                document.getElementById('jobId').textContent = data.data.job_id;
+                document.getElementById('statusText').textContent = data.data.status || 'pending';
                 document.getElementById('progressBar').style.width = '10%';
                 document.getElementById('jobStatus').style.display = 'block';
 
                 // Store current job ID for status checkin
-                window.currentJobId = data.job_id;
+                window.currentJobId = data.data.job_id;
             }
 
         } catch (error) {

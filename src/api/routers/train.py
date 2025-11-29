@@ -65,11 +65,15 @@ if os.getenv("ENVIRONMENT") == "test":
     mock_user.role = "admin"
     router = APIRouter(prefix="/train")
 else:
+<<<<<<< HEAD
+    router = APIRouter(prefix="/train")
+=======
     # Router uses auto_admin_user globally for context injection
     router = APIRouter(
         prefix="/train"
     )
 
+>>>>>>> 81f3e0a5daddbfc04d85dada7344f855f627f997
 logger = logging.getLogger(__name__)
 
 # Initialize configuration
@@ -214,9 +218,9 @@ def get_script_path(model_type: str) -> str:
 
     # 1. Define the canonical map (uses hyphens)
     script_map = {
-        "neural-net": "src/models/train_nn.py",
+        "neural_net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
-        "random-forest": "src/models/train_rf.py"
+        "random_forest": "src/models/train_rf.py"
     }
 
     # 2. Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
