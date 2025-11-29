@@ -290,6 +290,7 @@ async def train_model_consolidated(
     background_tasks: BackgroundTasks,
     # Body contains all config (retrain, hyperparams, etc.)
     request_body: TrainingRequest,
+    _: bool = Depends(admin_only)
 ):
     """
     Start training for a single model type or 'all' models.
