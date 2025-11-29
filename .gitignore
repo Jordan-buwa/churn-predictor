@@ -4,6 +4,8 @@ __pycache__/
 *.log
 venv/
 .venv/
+ven_clean/
+ven_clean
 .env
 git.sh
 tes.py
