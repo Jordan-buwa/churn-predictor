@@ -1,5 +1,4 @@
 from src.api.authenticator import get_current_active_user
-from src.api.authenticator import get_current_active_user
 import os
 from unittest.mock import MagicMock, patch
 import pandas as pd
@@ -91,7 +90,7 @@ customer_data = {
 }
 
 
-# 2. ROBUST MOCK USER
+# ROBUST MOCK USER
 mock_admin_user = MagicMock()
 mock_admin_user.id = 1
 mock_admin_user.username = "test-admin"
@@ -104,6 +103,8 @@ def override_get_current_active_user():
 
 # Assign the override after function definition
 app.dependency_overrides[get_current_active_user] = override_get_current_active_user
+
+# Test /predict endpoint
 
 
 @patch("src.api.routers.predict.load_model_by_type")
@@ -125,7 +126,7 @@ def test_predict_endpoint(mock_preprocessor, mock_get_latest_model, mock_load_mo
     mock_model.predict.return_value = [1]
     mock_load_model_by_type.return_value = mock_model
 
-    # Send POST request
+    # Send POST request once
     response = client.post(
         "/predict/xgboost",
         json=customer_data,
@@ -138,27 +139,12 @@ def test_predict_endpoint(mock_preprocessor, mock_get_latest_model, mock_load_mo
     assert response_data["status"] == "success"
     assert response_data["data"]["prediction"] == 1
 
-    # 4. CRITICAL FIX: Send POST request with Authorization header
-    response = client.post(
-        "/predict/xgboost",
-        json=customer_data,
-        headers={"Authorization": "Bearer dummy-token-to-trigger-dependency"}
-    )
 
-    # Assertions
-    assert response.status_code == 200  # This should now pass
-    response_data = response.json()
-    assert response_data["status"] == "success"
-    assert response_data["data"]["prediction"] == 1
-
-#  Test /train endpoint
-
-
+# Test /train endpoint
 @patch("src.api.routers.train.run_training_script")
 def test_train_endpoint(mock_run_script):
     mock_run_script.return_value = None
 
-    # 4. CRITICAL FIX: Send POST request with Authorization header
     response = client.post(
         "/train/xgboost",
         headers={"Authorization": "Bearer dummy-token-to-trigger-dependency"}
