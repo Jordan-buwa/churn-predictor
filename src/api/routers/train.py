@@ -27,11 +27,7 @@ if os.getenv("ENVIRONMENT") == "test":
     mock_user.id = "test-user"
     router = APIRouter(prefix="/train")
 else:
-    from src.api.authenticator import current_active_user
-    router = APIRouter(
-        prefix="/train", dependencies=[Depends(current_active_user)])
-
-router = APIRouter(prefix="/train")
+    router = APIRouter(prefix="/train")
 logger = logging.getLogger(__name__)
 
 # Initialize configuration
@@ -178,9 +174,9 @@ def get_script_path(model_type: str) -> str:
     allowed_types = get_allowed_model_types()
 
     script_map = {
-        "neural-net": "src/models/train_nn.py",
+        "neural_net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
-        "random-forest": "src/models/train_rf.py"
+        "random_forest": "src/models/train_rf.py"
     }
 
     if model_type not in allowed_types:
@@ -204,7 +200,7 @@ async def train_model(
     Start training for a specific model type, specified in the path (e.g., /train/xgboost).
 
     Args:
-        model_type: The type of model to train (neural-net, xgboost, random-forest)
+        model_type: The type of model to train (neural_net, xgboost, random_forest)
         background_tasks: FastAPI background tasks
         request: Optional training configuration (used for parameters only)
     """
@@ -241,7 +237,7 @@ async def train_model(
             data={
                 "job_id": job_id,
                 "model_type": effective_model_type,
-                "status": "started"
+                "status": "pending"
             }
         )
 
@@ -284,7 +280,7 @@ async def train_model_with_config_body(
             }
 
             # Start individual training jobs for each model type
-            model_types = ["neural-net", "xgboost", "random-forest"]
+            model_types = ["neural_net", "xgboost", "random_forest"]
             for model_type in model_types:
                 # We reuse start_single_training, which handles validation/setup
                 sub_job_id = await start_single_training(
@@ -293,10 +289,13 @@ async def train_model_with_config_body(
                 training_jobs[job_id]["sub_jobs"].append(sub_job_id)
 
             return TrainingResponse(
-                job_id=job_id,
-                status="started",
+                status="success",
                 message="Training initiated for all model types",
-                model_type="all"
+                data={
+                    "job_id": job_id,
+                    "model_type": "all",
+                    "status": "pending"
+                }
             )
         else:
             # Single model training using the body's model_type
@@ -305,10 +304,13 @@ async def train_model_with_config_body(
             )
 
             return TrainingResponse(
-                job_id=job_id,
-                status="started",
+                status="success",
                 message=f"Training initiated for {request.model_type}",
-                model_type=request.model_type
+                data={
+                    "job_id": job_id,
+                    "model_type": request.model_type,
+                    "status": "pending"
+                }
             )
 
     except HTTPException:

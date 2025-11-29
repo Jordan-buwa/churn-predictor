@@ -48,7 +48,7 @@ class APIResponse(BaseModel):
 class SuccessResponse(APIResponse):
     """Standard success response."""
     status: ResponseStatus = ResponseStatus.SUCCESS
-    data: Optional[Dict[str, Any]] = None
+    data: Dict[str, Any] = Field(...)
     metadata: Optional[Dict[str, Any]] = None
 
 class ErrorResponse(APIResponse):
@@ -68,76 +68,27 @@ class ValidationErrorResponse(ErrorResponse):
 # Model-specific response models
 class PredictionResponse(SuccessResponse):
     """Response for prediction endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "model_type": "xgboost",
-        "prediction": 0.85,
-        "model_path": "models/xgboost_model_2025-10-30.joblib",
-        "customer_id": "CUST123",
-        "preprocessing_applied": True,
-        "confidence": 0.95
-    })
+    pass
 
 class MetricsResponse(SuccessResponse):
     """Response for metrics endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "model_type": "xgboost",
-        "model_path": "models/xgboost_model_2025-10-30.joblib",
-        "metrics": {
-            "accuracy": 0.86,
-            "f1_score": 0.84,
-            "roc_auc": 0.90
-        },
-        "test_samples": 1000
-    })
+    pass
 
 class TrainingResponse(SuccessResponse):
     """Response for training endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "job_id": "550e8400-e29b-41d4-a716-446655440000",
-        "model_type": "xgboost",
-        "status": "pending",
-        "started_at": "2025-10-30T10:00:00Z"
-    })
+    pass
 
 class JobStatusResponse(SuccessResponse):
     """Response for training job status endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "job_id": "550e8400-e29b-41d4-a716-446655440000",
-        "status": "running",
-        "model_type": "xgboost",
-        "script_path": "src/models/train_xgboost.py",
-        "started_at": "2025-10-30T10:00:00Z",
-        "completed_at": None,
-        "model_path": "models/xgboost_model_2025-10-30.joblib",
-        "error": None,
-        "logs": "Training started...",
-        "sub_jobs": [
-            "8b7b6a1c-4d12-4c6f-9a2f-1234567890ab",
-            "e1c2d3f4-5a6b-7c8d-9e0f-0987654321cd"
-        ]
-    })
+    pass
 
 class IngestionResponse(SuccessResponse):
     """Response for data ingestion endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "batch_id": "BATCH123",
-        "records_processed": 100,
-        "records_saved": 95,
-        "records_failed": 5,
-        "source": "api",
-        "processing_time_ms": 250
-    })
+    pass
 
 class ValidationResponse(SuccessResponse):
     """Response for data validation endpoints."""
-    data: Dict[str, Any] = Field(..., example={
-        "rows_validated": 1000,
-        "columns_checked": 45,
-        "issues_found": 2,
-        "validation_status": "passed",
-        "model_type": "xgboost",
-        "schema_version": "v20251104_010520"
-    })
+    pass
 
 # Standardized data format models
 class FeatureData(BaseModel):

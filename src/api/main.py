@@ -108,6 +108,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error", "error": str(exc)}
     )
 
+# INCLUDE ROUTERS FIRST (before app routes) so they take priority
 if os.getenv("ENVIRONMENT", "development") != "test":
     from src.api.routers import predict, train, validate, metrics, ingest, auth
     app.include_router(predict.router, tags=["predictions"])
@@ -115,8 +116,6 @@ if os.getenv("ENVIRONMENT", "development") != "test":
     app.include_router(validate.router,tags=["Data Validation"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(ingest.router,  tags=["Data ingestion"])
-    # Include auth router with prefix
-    # app.include_router(auth.router, prefix="/auth", tags=["auth"])
     app.include_router(auth.router, tags=["auth"])
 else:
     from src.api.routers import predict, train
@@ -143,7 +142,7 @@ async def ui_ingest(request: Request):
 async def ui_predict(request: Request):
     return templates.TemplateResponse("predict.html", {"request": request})
 
-@app.get("/train", response_class=HTMLResponse)
+@app.get("/train-page", response_class=HTMLResponse)
 async def ui_train(request: Request):
     return templates.TemplateResponse("train.html", {"request": request})
 
