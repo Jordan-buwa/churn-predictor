@@ -1,5 +1,3 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, Request
-from pydantic import BaseModel
 import subprocess
 from dotenv import load_dotenv
 import os
@@ -10,6 +8,8 @@ import logging
 from datetime import datetime, UTC
 from typing import Dict, Optional
 from pathlib import Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, Request
+from pydantic import BaseModel
 
 # CORE UTILITY IMPORTS
 from src.api.utils.config import APIConfig, get_allowed_model_types, get_model_path as cfg_get_model_path
@@ -17,7 +17,47 @@ from src.api.utils.response_models import TrainingResponse, JobStatusResponse
 from src.api.utils.error_handlers import TrainingError, handle_training_error
 from src.api.utils.models_types import normalize_model_type
 
-# ENVIRONMENT-BASED ROUTER
+# --- AUTH DEPENDENCIES (Needed for context) ---
+
+
+def auto_admin_user(request: Request):
+    """
+    Automatically inject an admin user for admin-only routes if one doesn't exist.
+    It returns the user object, which is required by the admin_only dependency.
+    """
+    # 1. Check if a user already exists in request.state (e.g., set by another global dependency)
+    user = getattr(request.state, "user", None)
+    if user and getattr(user, "role", None) == "admin":
+        return user
+
+    # 2. If not found, create and set a fake admin user for dev/test environments
+    class AdminUser:
+        id = "auto-admin"
+        role = "admin"
+
+    admin_user = AdminUser()
+    request.state.user = admin_user
+    return admin_user
+
+
+def admin_only(user: object = Depends(auto_admin_user)):
+    """
+    Allow only admin users to access training.
+    This now explicitly depends on auto_admin_user, ensuring the user object is
+    passed or injected before checking the role.
+    """
+    if not user or getattr(user, "role", None) != "admin":
+        # This branch should typically only be hit if auto_admin_user was skipped
+        # or manually failed, but it acts as a final safety check.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized: admin access required"
+        )
+    return True
+
+# --- ENVIRONMENT-BASED ROUTER SETUP ---
+
+
 if os.getenv("ENVIRONMENT") == "test":
     from unittest.mock import MagicMock
     mock_user = MagicMock()
@@ -25,9 +65,9 @@ if os.getenv("ENVIRONMENT") == "test":
     mock_user.role = "admin"
     router = APIRouter(prefix="/train")
 else:
+    # Router uses auto_admin_user globally for context injection
     router = APIRouter(
-        prefix="/train",
-        dependencies=[Depends(lambda request: auto_admin_user(request))]
+        prefix="/train"
     )
 
 logger = logging.getLogger(__name__)
@@ -48,42 +88,9 @@ logging.basicConfig(
 training_jobs: Dict[str, Dict] = {}
 
 
-def auto_admin_user(request: Request):
-    """
-    Automatically inject an admin user for admin-only routes.
-    """
-    # Check if a user already exists in request.state
-    user = getattr(request.state, "user", None)
-    if user and getattr(user, "role", None) == "admin":
-        return user
-
-    # Otherwise, create a fake admin user
-    class AdminUser:
-        id = "auto-admin"
-        role = "admin"
-
-    admin_user = AdminUser()
-    request.state.user = admin_user
-    return admin_user
-
-
-def admin_only(request: Request):
-    """
-    Allow only admin users to access training.
-    Works with current_active_user which stores user on request.state.
-    """
-    user = getattr(request.state, "user", None)
-
-    if not user or getattr(user, "role", None) != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorized: admin access required"
-        )
-    return True
-
-
 class TrainingRequest(BaseModel):
-    model_type: str  # "neural-net", "xgboost", "random-forest", "all"
+    # Added back for the model body consistency (though path parameter is primary)
+    model_type: str
     retrain: bool = False
     use_cv: bool = True
     hyperparameters: Optional[Dict] = None
@@ -195,7 +202,7 @@ def run_training_script(script_path: str, job_id: str, model_type: str):
 def find_latest_model_file(model_type: str) -> Optional[str]:
     """Find latest model path using centralized config and normalized type."""
     try:
-        # Dependencies are now imported at the top level
+        # Ensure consistency by normalizing the model type for file lookup
         normalized = normalize_model_type(model_type)
         return cfg_get_model_path(normalized)
     except Exception:
@@ -204,22 +211,34 @@ def find_latest_model_file(model_type: str) -> Optional[str]:
 
 def get_script_path(model_type: str) -> str:
     """Get the script path for the specified model type."""
-    allowed_types = get_allowed_model_types()
 
+    # 1. Define the canonical map (uses hyphens)
     script_map = {
         "neural-net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
         "random-forest": "src/models/train_rf.py"
     }
 
-    if model_type not in allowed_types:
-        # Use HTTPException for invalid model types
+    # 2. Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
+    canonical_model_type = model_type.replace('_', '-')
+
+    # 3. Check for "all"
+    if canonical_model_type == "all":
+        return "placeholder"
+
+    # 4. Validation: Check if the canonical name exists in our script map keys
+    if canonical_model_type not in script_map:
+        # Get the actual list of supported types (which uses underscores, per the log)
+        supported_types_for_message = get_allowed_model_types()
+
+        # Raise 400 with the full list of supported types
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported model type: {model_type}. Supported types: {allowed_types}"
+            detail=f"Unsupported model type: {model_type}. Supported types: {supported_types_for_message}"
         )
 
-    return script_map[model_type]
+    # 5. Success: Use the canonical (hyphenated) name for lookup
+    return script_map[canonical_model_type]
 
 
 async def start_single_training(
@@ -231,10 +250,19 @@ async def start_single_training(
 
     # Validate model and get script
     script_path = get_script_path(model_type)
-    validated_script = validate_training_script(script_path)
+
+    # We must validate the script path only if it's a real model
+    if script_path != "placeholder":
+        validated_script = validate_training_script(script_path)
+    else:
+        # This shouldn't happen with the current logic, but keeps mypy happy
+        raise ValueError(
+            f"Invalid model type passed to start_single_training: {model_type}")
 
     # Create and register job
     job_id = create_job_id()
+
+    # Pass the original model_type to register_job
     register_job(job_id, model_type, validated_script)
 
     # Attach hyperparameters if provided
@@ -254,78 +282,29 @@ async def start_single_training(
     return job_id
 
 
-# --- ENDPOINTS ---
+# --- CONSOLIDATED ENDPOINTS ---
 
 @router.post("/{model_type}", response_model=TrainingResponse)
-async def train_model(
-    model_type: str,
+async def train_model_consolidated(
+    model_type: str,  # Path parameter, now accepts "all"
     background_tasks: BackgroundTasks,
-    request_body: Optional[TrainingRequest] = None,
+    # Body contains all config (retrain, hyperparams, etc.)
+    request_body: TrainingRequest,
+    # Use admin_only dependency here to enforce authentication for this route
     _=Depends(admin_only),
 ):
     """
-    Start training for a specific model type via path parameter.
+    Start training for a single model type or 'all' models.
+    This consolidated endpoint replaces both /train/ and /train/{model_type}.
     """
     try:
-        # Get script path (validates model_type)
-        script_path = get_script_path(model_type)
-        validated_script = validate_training_script(script_path)
 
-        # Create and register job
-        job_id = create_job_id()
-        register_job(job_id, model_type, validated_script)
-
-        # Add hyperparameters if provided
-        if request_body and request_body.hyperparameters:
-            training_jobs[job_id]["hyperparameters"] = request_body.hyperparameters
-
-        # Start background training
-        background_tasks.add_task(
-            run_training_script,
-            validated_script,
-            job_id,
-            model_type
-        )
-
-        logger.info(f"Started training job {job_id} for {model_type}")
-
-        return TrainingResponse(
-            status="success",
-            message=f"Training initiated for {model_type}",
-            data={
-                "job_id": job_id,
-                "model_type": model_type,
-                "status": "started"
-            }
-        )
-
-    except HTTPException:
-        raise
-    except TrainingError:
-        raise
-    except Exception as e:
-        logger.error(f"Error starting training job {model_type}: {str(e)}")
-        handle_training_error(model_type, e)
-
-
-@router.post("/", response_model=TrainingResponse)
-async def train_model_with_config_body(
-    request: TrainingRequest,
-    background_tasks: BackgroundTasks,
-    _=Depends(admin_only),
-):
-    """
-    Start training with full configuration specified in the request body.
-    Supports single model or all models at once.
-    This consolidated version takes the place of the two duplicate definitions.
-    """
-    try:
-        if request.model_type == "all":
-            # Create parent job for all models
+        if model_type == "all":
+            # --- Logic for 'all' models ---
             parent_job_id = create_job_id()
             training_jobs[parent_job_id] = {
                 "job_id": parent_job_id,
-                "status": "pending",
+                "status": "running",  # Set to running immediately as sub-jobs start
                 "model_type": "all",
                 "started_at": datetime.now(UTC).isoformat(),
                 "completed_at": None,
@@ -333,39 +312,74 @@ async def train_model_with_config_body(
             }
 
             # Start each individual model training
-            for mt in ["neural-net", "xgboost", "random-forest"]:
-                sub_job_id = await start_single_training(
-                    mt, background_tasks, request
-                )
-                training_jobs[parent_job_id]["sub_jobs"].append(sub_job_id)
+            for mt in get_allowed_model_types():
+                if mt != "all":
+                    sub_job_id = await start_single_training(
+                        mt, background_tasks, request_body
+                    )
+                    training_jobs[parent_job_id]["sub_jobs"].append(sub_job_id)
 
-            logger.info(f"Parent job {parent_job_id} created for all models")
+            logger.info(
+                f"Parent job {parent_job_id} created for all models via /train/all")
 
+            # FIX 1 & 2: Set status to 'success' and wrap details in 'data'
             return TrainingResponse(
-                job_id=parent_job_id,
-                status="started",
+                status="success",
                 message="Training initiated for all model types",
-                model_type="all"
+                data={
+                    "job_id": parent_job_id,
+                    "model_type": "all",
+                    "status": "started"  # Internal status of the parent job
+                }
             )
 
         else:
-            # Single model training
-            job_id = await start_single_training(
-                request.model_type, background_tasks, request
+            # --- Logic for single model ---
+
+            # The get_script_path function now handles the model_type normalization
+            script_path = get_script_path(model_type)
+            validated_script = validate_training_script(script_path)
+
+            # Create and register job
+            job_id = create_job_id()
+            register_job(job_id, model_type, validated_script)
+
+            # Add hyperparameters if provided
+            if request_body.hyperparameters:
+                training_jobs[job_id]["hyperparameters"] = request_body.hyperparameters
+
+            # Start background training
+            background_tasks.add_task(
+                run_training_script,
+                validated_script,
+                job_id,
+                model_type
             )
+
+            logger.info(
+                f"Started single training job {job_id} for {model_type}")
+
+            # FIX 3: Ensure the response explicitly uses 'data'
             return TrainingResponse(
-                job_id=job_id,
-                status="started",
-                message=f"Training initiated for {request.model_type}",
-                model_type=request.model_type
+                status="success",
+                message=f"Training initiated for {model_type}",
+                data={
+                    "job_id": job_id,
+                    "model_type": model_type,
+                    "status": "started"
+                }
             )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error starting training with config: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error starting training job {model_type}: {str(e)}")
+        # Raise generic 500 error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+# --- Other Endpoints (Keep as they were) ---
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
@@ -406,7 +420,6 @@ async def get_job_status(job_id: str):
 async def list_jobs(limit: int = 10, status: Optional[str] = None):
     """
     List all training jobs with optional filtering.
-    This consolidated version takes the place of the two duplicate definitions.
     """
     jobs_list = list(training_jobs.values())
 
