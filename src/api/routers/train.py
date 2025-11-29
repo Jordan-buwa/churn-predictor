@@ -17,7 +17,7 @@ from src.api.utils.response_models import TrainingResponse, JobStatusResponse
 from src.api.utils.error_handlers import TrainingError, handle_training_error
 from src.api.utils.models_types import normalize_model_type
 
-# --- AUTH DEPENDENCIES (Needed for context) ---
+# AUTH DEPENDENCIES
 
 
 def auto_admin_user(request: Request):
@@ -55,7 +55,7 @@ def admin_only(user: object = Depends(auto_admin_user)):
         )
     return True
 
-# --- ENVIRONMENT-BASED ROUTER SETUP ---
+#  ENVIRONMENT-BASED ROUTER SETUP
 
 
 if os.getenv("ENVIRONMENT") == "test":
@@ -212,21 +212,21 @@ def find_latest_model_file(model_type: str) -> Optional[str]:
 def get_script_path(model_type: str) -> str:
     """Get the script path for the specified model type."""
 
-    # 1. Define the canonical map (uses hyphens)
+    # Define the canonical map (uses hyphens)
     script_map = {
            "neural-net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
            "random-forest": "src/models/train_rf.py"
     }
 
-    # 2. Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
+    # Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
     canonical_model_type = model_type.replace('_', '-')
 
-    # 3. Check for "all"
+    # Check for "all"
     if canonical_model_type == "all":
         return "placeholder"
 
-    # 4. Validation: Check if the canonical name exists in our script map keys
+    # Validation: Check if the canonical name exists in our script map keys
     if canonical_model_type not in script_map:
         # Get the actual list of supported types (which uses underscores, per the log)
         supported_types_for_message = get_allowed_model_types()
@@ -237,7 +237,7 @@ def get_script_path(model_type: str) -> str:
             detail=f"Unsupported model type: {model_type}. Supported types: {supported_types_for_message}"
         )
 
-    # 5. Success: Use the canonical (hyphenated) name for lookup
+    # Success: Use the canonical (hyphenated) name for lookup
     return script_map[canonical_model_type]
 
 
@@ -255,7 +255,6 @@ async def start_single_training(
     if script_path != "placeholder":
         validated_script = validate_training_script(script_path)
     else:
-        # This shouldn't happen with the current logic, but keeps mypy happy
         raise ValueError(
             f"Invalid model type passed to start_single_training: {model_type}")
 
@@ -282,7 +281,7 @@ async def start_single_training(
     return job_id
 
 
-# --- CONSOLIDATED ENDPOINTS ---
+#  CONSOLIDATED ENDPOINTS
 
 @router.post("/{model_type}", response_model=TrainingResponse)
 async def train_model_consolidated(
@@ -321,7 +320,7 @@ async def train_model_consolidated(
             logger.info(
                 f"Parent job {parent_job_id} created for all models via /train/all")
 
-            # FIX 1 & 2: Set status to 'success' and wrap details in 'data'
+            # Set status to 'success' and wrap details in 'data'
             return TrainingResponse(
                 status="success",
                 message="Training initiated for all model types",
@@ -333,7 +332,7 @@ async def train_model_consolidated(
             )
 
         else:
-            # --- Logic for single model ---
+            #  Logic for single model
 
             # The get_script_path function now handles the model_type normalization
             script_path = get_script_path(model_type)
@@ -358,7 +357,7 @@ async def train_model_consolidated(
             logger.info(
                 f"Started single training job {job_id} for {model_type}")
 
-            # FIX 3: Ensure the response explicitly uses 'data'
+            # Ensure the response explicitly uses 'data'
             return TrainingResponse(
                 status="success",
                 message=f"Training initiated for {model_type}",
@@ -392,9 +391,6 @@ async def train_model_consolidated(
             background_tasks=background_tasks,
             request_body=request_body
         )
-
-
-# --- Other Endpoints (Keep as they were) ---
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
