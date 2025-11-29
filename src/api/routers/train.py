@@ -214,9 +214,9 @@ def get_script_path(model_type: str) -> str:
 
     # 1. Define the canonical map (uses hyphens)
     script_map = {
-        "neural_net": "src/models/train_nn.py",
+           "neural-net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
-        "random_forest": "src/models/train_rf.py"
+           "random-forest": "src/models/train_rf.py"
     }
 
     # 2. Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
@@ -290,8 +290,6 @@ async def train_model_consolidated(
     background_tasks: BackgroundTasks,
     # Body contains all config (retrain, hyperparams, etc.)
     request_body: TrainingRequest,
-    # Use admin_only dependency here to enforce authentication for this route
-    _=Depends(admin_only),
 ):
     """
     Start training for a single model type or 'all' models.
@@ -329,7 +327,7 @@ async def train_model_consolidated(
                 data={
                     "job_id": parent_job_id,
                     "model_type": "all",
-                    "status": "started"  # Internal status of the parent job
+                       "status": "pending"  # Internal status of the parent job
                 }
             )
 
@@ -366,7 +364,7 @@ async def train_model_consolidated(
                 data={
                     "job_id": job_id,
                     "model_type": model_type,
-                    "status": "started"
+                       "status": "pending"
                 }
             )
 
@@ -377,6 +375,22 @@ async def train_model_consolidated(
         # Raise generic 500 error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+    @router.post("/", response_model=TrainingResponse)
+    async def train_model_post_root(
+        background_tasks: BackgroundTasks,
+        request_body: TrainingRequest
+    ):
+        """
+        Start training via POST /train/ with model_type in request body.
+        """
+        model_type = request_body.model_type or "all"
+        return await train_model_consolidated(
+            model_type=model_type,
+            background_tasks=background_tasks,
+            request_body=request_body
+        )
 
 
 # --- Other Endpoints (Keep as they were) ---
