@@ -214,9 +214,9 @@ def get_script_path(model_type: str) -> str:
 
     # Define the canonical map (uses hyphens)
     script_map = {
-        "neural-net": "src/models/train_nn.py",
+           "neural-net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
-        "random-forest": "src/models/train_rf.py"
+           "random-forest": "src/models/train_rf.py"
     }
 
     # Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
@@ -289,8 +289,7 @@ async def train_model_consolidated(
     background_tasks: BackgroundTasks,
     # Body contains all config (retrain, hyperparams, etc.)
     request_body: TrainingRequest,
-    # Use admin_only dependency here to enforce authentication for this route
-    _=Depends(admin_only),
+    _: bool = Depends(admin_only)
 ):
     """
     Start training for a single model type or 'all' models.
@@ -328,7 +327,7 @@ async def train_model_consolidated(
                 data={
                     "job_id": parent_job_id,
                     "model_type": "all",
-                    "status": "started"  # Internal status of the parent job
+                       "status": "pending"  # Internal status of the parent job
                 }
             )
 
@@ -365,7 +364,7 @@ async def train_model_consolidated(
                 data={
                     "job_id": job_id,
                     "model_type": model_type,
-                    "status": "started"
+                       "status": "pending"
                 }
             )
 
@@ -378,7 +377,20 @@ async def train_model_consolidated(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-#  Other Endpoints
+    @router.post("/", response_model=TrainingResponse)
+    async def train_model_post_root(
+        background_tasks: BackgroundTasks,
+        request_body: TrainingRequest
+    ):
+        """
+        Start training via POST /train/ with model_type in request body.
+        """
+        model_type = request_body.model_type or "all"
+        return await train_model_consolidated(
+            model_type=model_type,
+            background_tasks=background_tasks,
+            request_body=request_body
+        )
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
