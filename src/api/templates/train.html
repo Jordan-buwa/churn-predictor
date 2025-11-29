@@ -11,7 +11,7 @@
                 <label class="form-label">Model Type</label>
                 <select class="form-select" name="model_type" required>
                     {% for mt in request.app.state.allowed_models %}
-                        <option value="{{ mt }}">{{ mt.replace('-',' ') | title }}</option>
+                    <option value="{{ mt }}">{{ mt.replace('-',' ') | title }}</option>
                     {% endfor %}
                     <option value="all">All</option>
                 </select>
@@ -58,49 +58,61 @@
         e.preventDefault();
         const fd = new FormData(e.target);
         const payload = Object.fromEntries(fd);
-        
+
+        const modelType = payload.model_type;
+
+        // CRITICAL FIX: Always use the parameterized endpoint /train/{model_type} 
+        // This includes for 'all', which becomes /train/all
+        const endpoint = `/train/${modelType}`;
+
         // Convert checkbox values
         payload.retrain = payload.retrain === 'on';
         payload.use_cv = payload.use_cv === 'on';
-        
+
         // Parse hyperparameters if provided
         if (payload.hyperparameters && payload.hyperparameters.trim()) {
-            try { 
-                payload.hyperparameters = JSON.parse(payload.hyperparameters); 
+            try {
+                payload.hyperparameters = JSON.parse(payload.hyperparameters);
             } catch (e) {
-                alert('Invalid JSON in hyperparameters field');
+                // Use a dedicated message box instead of alert
+                document.getElementById('response').textContent = 'Error: Invalid JSON in hyperparameters field';
                 return;
             }
         } else {
             payload.hyperparameters = null;
         }
 
+        // The payload body naturally includes model_type since we didn't delete it this time.
+
         try {
-            const res = await fetch('/train/', {
+            // Updated fetch call using the dynamically constructed endpoint
+            const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: {'Content-Type':'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
+
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.detail || `HTTP error! status: ${res.status}`);
+                // Improved error handling
+                const message = errorData.detail || `HTTP error! status: ${res.status} on endpoint ${endpoint}`;
+                throw new Error(message);
             }
-            
+
             const data = await res.json();
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-            
+
             // Show job status section if job was started
             if (data.data && data.data.job_id) {
                 document.getElementById('jobId').textContent = data.data.job_id;
                 document.getElementById('statusText').textContent = data.data.status || 'pending';
                 document.getElementById('progressBar').style.width = '10%';
                 document.getElementById('jobStatus').style.display = 'block';
-                
+
                 // Store current job ID for status checkin
                 window.currentJobId = data.data.job_id;
             }
-            
+
         } catch (error) {
             document.getElementById('response').textContent = `Error: ${error.message}`;
             console.error('Training request failed:', error);
@@ -110,22 +122,23 @@
     // Check status button
     document.getElementById('checkStatusBtn').addEventListener('click', async () => {
         if (!window.currentJobId) {
-            alert('No active job to check');
+            // Use a dedicated message box instead of alert
+            document.getElementById('response').textContent = 'Error: No active job to check';
             return;
         }
-        
+
         try {
             const res = await fetch(`/train/status/${window.currentJobId}`);
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
-            
+
             const data = await res.json();
             document.getElementById('statusText').textContent = data.data.status;
-            
+
             // Update progress bar based on status
             const progressBar = document.getElementById('progressBar');
-            switch(data.data.status) {
+            switch (data.data.status) {
                 case 'running':
                     progressBar.style.width = '50%';
                     progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
@@ -142,13 +155,14 @@
                     progressBar.style.width = '10%';
                     progressBar.className = 'progress-bar';
             }
-            
+
             // Update response display
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-            
+
         } catch (error) {
             console.error('Status check failed:', error);
-            alert(`Failed to check status: ${error.message}`);
+            // Use a dedicated message box instead of alert
+            document.getElementById('response').textContent = `Error: Failed to check status: ${error.message}`;
         }
     });
 
@@ -159,13 +173,14 @@
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
-            
+
             const data = await res.json();
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-            
+
         } catch (error) {
             console.error('Failed to fetch jobs:', error);
-            alert(`Failed to fetch jobs: ${error.message}`);
+            // Use a dedicated message box instead of alert
+            document.getElementById('response').textContent = `Error: Failed to fetch jobs: ${error.message}`;
         }
     });
 </script>

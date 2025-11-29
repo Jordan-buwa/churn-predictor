@@ -8,7 +8,7 @@ on:
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
-    branches: ["jordan_branch"]
+    branches: main
   workflow_dispatch:
 
 jobs:
