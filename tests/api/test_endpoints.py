@@ -89,6 +89,13 @@ customer_data = {
     'retcall': "0",
 }
 
+# --- FIX: Training request body required for successful POST ---
+training_request_body = {
+    "model_type": "xgboost",
+    "retrain": False,
+    "use_cv": True
+}
+
 
 # ROBUST MOCK USER
 mock_admin_user = MagicMock()
@@ -147,6 +154,7 @@ def test_train_endpoint(mock_run_script):
 
     response = client.post(
         "/train/xgboost",
+        json=training_request_body,  # <-- FIX: Added the required JSON body
         headers={"Authorization": "Bearer dummy-token-to-trigger-dependency"}
     )
 
