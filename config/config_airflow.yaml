@@ -1,7 +1,7 @@
 dags:
   from_postgresdb_to_azure_blob:
     dag_id: from_postgresdb_to_azure_blob
-    owner: 
+    owner: Team_AMMI
     depends_on_past: false
     start_date: "2024-12-01"
     timezone: UTC
@@ -12,5 +12,72 @@ dags:
     email_on_retry: false
     retries: 1
     retry_delay: 2
+
+  train_rf_model:
+    dag_id: train_rf_model
+    owner: Team_AMMI
+    start_date: "2025-11-12"
+    timezone: UTC
+    catchup: false
+    description: "Train Random Forest model"
+    retries: 1
+
+  train_xgb_model:
+    dag_id: train_xgb_model
+    owner: Team_AMMI
+    start_date: "2025-11-12"
+    timezone: UTC
+    catchup: false
+    description: "Train XGBoost model"
+    retries: 1
+
+  train_nn_model:
+    dag_id: train_nn_model
+    owner: Team_AMMI
+    start_date: "2025-11-12"
+    timezone: UTC
+    catchup: false
+    description: "Train Neural Net model"
+    retries: 1
+
+core:
+  # Core settings
+  executor: LocalExecutor          # Use LocalExecutor for simplicity
+  load_examples: false             # Disable example DAGs
+  dags_folder: ./airflow/dags
+  plugins_folder: ./airflow/plugins
+  sql_alchemy_conn: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+
+webserver:
+  # Webserver / UI settings
+  rbac: true                       # Enable Role-Based Access Control
+  authenticate: true               # Require login
+  auth_backend: airflow.api.auth.backend.basic_auth
+  base_url: http://localhost:8080
+  default_ui_timezone: UTC
+  web_server_port: 8080
+
+smtp:
+  # Optional email notifications
+  smtp_host: smtp.example.com      # Replace with your SMTP host
+  smtp_starttls: true
+  smtp_ssl: false
+  smtp_user: your_email@example.com
+  smtp_password: your_email_password
+  smtp_port: 587
+  smtp_mail_from: airflow@example.com
+
+logging:
+  # Logging settings
+  base_log_folder: ./airflow/logs
+  remote_logging: false
+  log_level: INFO
+
+# Optional: Configure Airflow environment variables here if not using system env
+env_vars:
+  AIRFLOW__WEBSERVER__RBAC: True
+  AIRFLOW__WEBSERVER__AUTHENTICATE: True
+  AIRFLOW__WEBSERVER__AUTH_BACKEND: airflow.api.auth.backend.basic_auth
+
 
     

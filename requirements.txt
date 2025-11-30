@@ -1,3 +1,69 @@
--r requirements-core.txt
--r requirements-ml.txt
--r requirements-azure.txt
+# Core ML & Data Science
+dvc[azure]
+pandas
+numpy
+scikit-learn
+scipy
+joblib
+evidently
+pytest
+# monitoring using grafana
+prometheus-client
+flask
+
+# ML Frameworks
+xgboost
+torch
+torchvision
+imbalanced-learn
+
+# API & Web
+fastapi[standard]
+uvicorn[standard]
+python-multipart
+azure-storage-blob
+fastapi-users[sqlalchemy]
+PyYAML
+azure-storage-blob
+opencensus-ext-azure
+opencensus-ext-logging
+
+
+# Database
+psycopg2-binary
+sqlalchemy
+sqlmodel
+alembic
+
+
+# ML Tracking & Experimentation
+mlflow
+optuna
+optuna-integration[mlflow]
+
+# Configuration & Validation
+pyyaml
+python-dotenv
+pydantic
+great-expectations
+
+# HTTP & Networking
+requests
+httpx
+
+# Development & Testing
+pytest
+pytest-asyncio
+requests-mock
+pytest-cov
+setuptools
+
+azure-ai-ml 
+azure-identity 
+azure-mgmt-resource 
+azure-mgmt-machinelearningservices
+apache-airflow
+apache-airflow==2.7.3
+apache-airflow-providers-sqlite==3.5.0
+azure-datalake-store>=0.0.45
+azure-mgmt-datalake-store>=0.5.0 ; extra == 'all'
