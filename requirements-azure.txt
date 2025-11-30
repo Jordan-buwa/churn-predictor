@@ -2,4 +2,5 @@ azure-storage-blob==12.18.2
 azure-ai-ml==1.17.0
 azure-identity==1.16.0
 azure-mgmt-resource==23.0.0
-azure-mgmt-machinelearningservices==2.18.0
+azure-mgmt-machinelearningservices==1.0.0
+marshmallow==3.15.0

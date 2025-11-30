@@ -13,10 +13,41 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from sqlmodel import SQLModel
+from prometheus_client import make_asgi_app, Counter, Gauge, Summary
+
 load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
+# PROMETHEUS METRIC DEFINITIONS
+
+# Counter: Tracks total number of requests for specific endpoints
+REQUEST_COUNT = Counter(
+    'fastapi_requests_total',
+    'Total number of prediction requests received',
+    ['endpoint']
+)
+# Summary: Tracks request latency (duration)
+REQUEST_LATENCY = Summary(
+    'fastapi_request_latency_seconds',
+    'Request latency in seconds',
+    ['endpoint']
+)
+# Gauge: Tracks the number of models currently loaded (stateful metric)
+MODEL_LOADED_GAUGE = Gauge(
+    'fastapi_loaded_models_count',
+    'Number of ML models currently loaded in memory'
+)
+
+# Function to update the model count for the Gauge
+
+
+def update_model_count():
+    """Updates the Prometheus gauge with the current number of loaded models."""
+    info = get_all_models_info()
+    MODEL_LOADED_GAUGE.set(len(info))
+
 # from src.api.template_context import get_template_context
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +85,10 @@ async def lifespan(app: FastAPI):
         logger.info("Loading ML models...")
         models = load_all_models()
         logger.info(f"Loaded {len(models)} models")
+
+ # Update Prometheus Gauge on startup
+        update_model_count()
+
         for mt, info in get_all_models_info().items():
             if info['loaded']:
                 logger.info(f"  - {mt}: {info['metadata'].get('path')}")
@@ -62,6 +97,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Model loading error: {e}")
         logger.warning("API will start – some endpoints may be unavailable")
+
+   # Mount the /metrics endpoint for Prometheus scraping
+    # This exposes the raw Prometheus metrics text format
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
 
     yield
 
@@ -93,6 +133,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add Prometheus Middleware for Request Tracking
+
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    """Middleware to record request count and latency for /predict and /train."""
+    path = request.url.path
+
+    # Only record metrics for the endpoints we care about monitoring
+    if path.startswith("/predict") or path.startswith("/train"):
+
+        # Start timer and record when the 'with' block exits
+        with REQUEST_LATENCY.labels(endpoint=path).time():
+            # Increment the counter
+            REQUEST_COUNT.labels(endpoint=path).inc()
+
+            response = await call_next(request)
+        return response
+
+    response = await call_next(request)
+    return response
 
 # templates
 
@@ -154,12 +215,13 @@ async def ui_ingest(request: Request):
 async def ui_predict(request: Request):
     return templates.TemplateResponse("predict.html", {"request": request})
 
+
 @app.get("/train", response_class=HTMLResponse)
 async def ui_train(request: Request):
     return templates.TemplateResponse("train.html", {"request": request})
 
 
-@app.get("/metrics", response_class=HTMLResponse)
+@app.get("/metrics-ui", response_class=HTMLResponse)
 async def ui_metrics(request: Request):
     return templates.TemplateResponse("metrics.html", {"request": request})
 

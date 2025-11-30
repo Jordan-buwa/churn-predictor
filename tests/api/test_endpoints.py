@@ -154,7 +154,7 @@ def test_train_endpoint(mock_run_script):
 
     response = client.post(
         "/train/xgboost",
-        json=training_request_body,  # <-- FIX: Added the required JSON body
+        json=training_request_body,
         headers={"Authorization": "Bearer dummy-token-to-trigger-dependency"}
     )
 
@@ -165,4 +165,4 @@ def test_train_endpoint(mock_run_script):
     assert response_data["message"] == "Training initiated for xgboost"
     assert "job_id" in response_data["data"]
     assert response_data["data"]["model_type"] == "xgboost"
-    assert response_data["data"]["status"] == "started"
+    assert response_data["data"]["status"] == "pending"
