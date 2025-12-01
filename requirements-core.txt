@@ -11,8 +11,8 @@ prometheus-client==0.19.0
 flask==3.0.2
 
 # API & Web
-fastapi[standard]==0.110.0
-uvicorn[standard]==0.29.0
+fastapi==0.110.0
+uvicorn==0.29.0
 python-multipart==0.0.9
 PyYAML==6.0.1
 opencensus-ext-azure==1.1.7
