@@ -20,24 +20,26 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 # PROMETHEUS METRIC DEFINITIONS
 
-# Counter: Tracks total number of requests for specific endpoints
-REQUEST_COUNT = Counter(
-    'fastapi_requests_total',
-    'Total number of prediction requests received',
-    ['endpoint']
-)
-# Summary: Tracks request latency (duration)
-REQUEST_LATENCY = Summary(
-    'fastapi_request_latency_seconds',
-    'Request latency in seconds',
-    ['endpoint']
-)
-# Gauge: Tracks the number of models currently loaded (stateful metric)
-MODEL_LOADED_GAUGE = Gauge(
-    'fastapi_loaded_models_count',
-    'Number of ML models currently loaded in memory'
-)
-
+try:
+    # Counter: Tracks total number of requests for specific endpoints
+    REQUEST_COUNT = Counter(
+        'fastapi_requests_total',
+        'Total number of prediction requests received',
+        ['endpoint']
+    )
+    # Summary: Tracks request latency (duration)
+    REQUEST_LATENCY = Summary(
+        'fastapi_request_latency_seconds',
+        'Request latency in seconds',
+        ['endpoint']
+    )
+    # Gauge: Tracks the number of models currently loaded (stateful metric)
+    MODEL_LOADED_GAUGE = Gauge(
+        'fastapi_loaded_models_count',
+        'Number of ML models currently loaded in memory'
+    )
+except ValueError:
+    pass
 # Function to update the model count for the Gauge
 
 
