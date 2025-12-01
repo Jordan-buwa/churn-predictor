@@ -208,6 +208,13 @@ async def add_user_to_request(request: Request, call_next):
     """Add user information to request state if authenticated."""
     try:
         # Skip authentication for public routes
+
+        public_routes = ["/", "/pages/register", "/auth/login",
+                         "/auth/register", "/health", "/metrics"]
+        if request.url.path in public_routes or request.url.path.startswith("/static"):
+            response = await call_next(request)
+            return response
+
         public_routes = ["/", "/pages/register", "/auth/login",
                          "/auth/register", "/health", "/metrics"]
         if request.url.path in public_routes or request.url.path.startswith("/static"):
@@ -219,6 +226,7 @@ async def add_user_to_request(request: Request, call_next):
         if auth_header and auth_header.startswith("Bearer "):
             # Create a mock dependency context
             from fastapi.security import HTTPAuthorizationCredentials
+
             credentials = HTTPAuthorizationCredentials(
                 scheme="Bearer", credentials=auth_header[7:])
 
@@ -226,6 +234,12 @@ async def add_user_to_request(request: Request, call_next):
             from src.api.db import get_db
             db = next(get_db())
 
+            credentials = HTTPAuthorizationCredentials(
+                scheme="Bearer", credentials=auth_header[7:])
+
+            # Get database session
+            from src.api.db import get_db
+            db = next(get_db())
             try:
                 # Get current user
                 user = await get_current_user(credentials, db)
@@ -236,6 +250,9 @@ async def add_user_to_request(request: Request, call_next):
             request.state.user = None
     except Exception:
         request.state.user = None
+
+    response = await call_next(request)
+    return response
 
     response = await call_next(request)
     return response
