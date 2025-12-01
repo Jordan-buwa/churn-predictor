@@ -32,3 +32,4 @@ docker-compose.azure.yml
 *.save
 *.save.*
 pinned-requirements.txt
+mlartifacts/
