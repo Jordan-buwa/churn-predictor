@@ -18,57 +18,11 @@ from src.api.utils.error_handlers import TrainingError, handle_training_error
 from src.api.utils.models_types import normalize_model_type
 
 # AUTH DEPENDENCIES
-
-
-def auto_admin_user(request: Request):
-    """
-    Automatically inject an admin user for admin-only routes if one doesn't exist.
-    It returns the user object, which is required by the admin_only dependency.
-    """
-    # 1. Check if a user already exists in request.state (e.g., set by another global dependency)
-    user = getattr(request.state, "user", None)
-    if user and getattr(user, "role", None) == "admin":
-        return user
-
-    # 2. If not found, create and set a fake admin user for dev/test environments
-    class AdminUser:
-        id = "auto-admin"
-        role = "admin"
-
-    admin_user = AdminUser()
-    request.state.user = admin_user
-    return admin_user
-
-
-def admin_only(user: object = Depends(auto_admin_user)):
-    """
-    Allow only admin users to access training.
-    This now explicitly depends on auto_admin_user, ensuring the user object is
-    passed or injected before checking the role.
-    """
-    if not user or getattr(user, "role", None) != "admin":
-        # This branch should typically only be hit if auto_admin_user was skipped
-        # or manually failed, but it acts as a final safety check.
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorized: admin access required"
-        )
-    return True
+from src.api.authenticator import admin_only_access
+from src.api.db import User
 
 #  ENVIRONMENT-BASED ROUTER SETUP
-
-
-if os.getenv("ENVIRONMENT") == "test":
-    from unittest.mock import MagicMock
-    mock_user = MagicMock()
-    mock_user.id = "test-user"
-    mock_user.role = "admin"
-    router = APIRouter(prefix="/train")
-else:
-    # Router uses auto_admin_user globally for context injection
-    router = APIRouter(
-        prefix="/train"
-    )
+router = APIRouter(prefix="/train")
 
 logger = logging.getLogger(__name__)
 
@@ -214,9 +168,9 @@ def get_script_path(model_type: str) -> str:
 
     # Define the canonical map (uses hyphens)
     script_map = {
-           "neural-net": "src/models/train_nn.py",
+        "neural-net": "src/models/train_nn.py",
         "xgboost": "src/models/train_xgb.py",
-           "random-forest": "src/models/train_rf.py"
+        "random-forest": "src/models/train_rf.py"
     }
 
     # Normalize the input (path parameter or from 'all' loop) to the canonical hyphenated form
@@ -282,14 +236,15 @@ async def start_single_training(
 
 
 #  CONSOLIDATED ENDPOINTS
-
+#  DEPENDENCY INJECTION
 @router.post("/{model_type}", response_model=TrainingResponse)
 async def train_model_consolidated(
     model_type: str,  # Path parameter, now accepts "all"
     background_tasks: BackgroundTasks,
     # Body contains all config (retrain, hyperparams, etc.)
     request_body: TrainingRequest,
-    _: bool = Depends(admin_only)
+    # Inject the dependency to enforce the 'admin' role
+    admin_user: User = Depends(admin_only_access)
 ):
     """
     Start training for a single model type or 'all' models.
@@ -376,11 +331,12 @@ async def train_model_consolidated(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-
     @router.post("/", response_model=TrainingResponse)
     async def train_model_post_root(
         background_tasks: BackgroundTasks,
-        request_body: TrainingRequest
+        request_body: TrainingRequest,
+        # Inject the dependency to enforce the 'admin' role
+        admin_user: User = Depends(admin_only_access)
     ):
         """
         Start training via POST /train/ with model_type in request body.
@@ -391,6 +347,7 @@ async def train_model_consolidated(
             background_tasks=background_tasks,
             request_body=request_body
         )
+
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):

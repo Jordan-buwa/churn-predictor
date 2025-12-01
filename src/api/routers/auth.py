@@ -1,43 +1,158 @@
-import jwt
+# import jwt
+# import uuid
+# import os
+# from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
+# from sqlalchemy.orm import Session
+# from src.api.schemas import API_KEY_SECRET, verify_api_key, verify_password, hash_password
+# from src.api.authenticator import get_current_user, create_access_token, get_current_active_user
+# from src.api.db import User, get_db, UserCreate, UserRead, UserUpdate
+# from datetime import datetime, timedelta
+# from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+# from pwdlib import PasswordHash
+# from sqlmodel import Session as SQLModelSession, select
+
+# ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+# # Password hashing
+# pwd = PasswordHash.recommended()
+
+# router = APIRouter()
+
+# # Registration route
+# @router.post("/auth/register", response_model=UserRead)
+# def register(user_data: UserCreate, db: SQLModelSession = Depends(get_db)):
+#     # Check if user already exists
+#     existing_user = db.exec(
+#         select(User).where(
+#             (User.email == user_data.email) | (User.username == user_data.username)
+#         )
+#     ).first()
+
+#     if existing_user:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Username or email already registered"
+#         )
+
+#     # Create new user
+#     hashed_password = hash_password(user_data.password)
+#     print("TEST REGISTER 1")
+
+#     user = User(
+#         username=user_data.username,
+#         email=user_data.email,
+#         phone=user_data.phone,
+#         password=hashed_password,
+#         role=user_data.role,
+#     )
+
+#     db.add(user)
+#     db.commit()
+#     print("TEST REGISTER 2")
+#     db.refresh(user)
+
+#     return user
+
+# # Login route
+# @router.post("/auth/login")
+# def login(
+#     username: str = Form(...),
+#     password: str = Form(...),
+#     db: SQLModelSession = Depends(get_db)
+# ):
+#     user = db.exec(select(User).where(User.username == username)).first()
+
+#     if not user or not verify_password(password, user.password):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password"
+#         )
+
+#     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#     access_token = create_access_token(
+#         data={"sub": str(user.id)}, expires_delta=access_token_expires
+#     )
+
+#     return {
+#         "access_token": access_token,
+#         "token_type": "bearer",
+#         "user": UserRead.model_validate(user)
+#     }
+
+# # Refresh token
+# @router.post("/auth/refresh")
+# def refresh_token(current_user: User = Depends(get_current_user)):
+#     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#     access_token = create_access_token(
+#         data={"sub": str(current_user.id)}, expires_delta=access_token_expires
+#     )
+
+#     return {
+#         "access_token": access_token,
+#         "token_type": "bearer"
+#     }
+
+# # User information and update routes
+# @router.get("/auth/me", response_model=UserRead)
+# async def read_users_me(current_user: User = Depends(get_current_active_user)):
+#     return UserRead.model_validate(current_user)
+
+# @router.put("/auth/me", response_model=UserRead)
+# async def update_user_me(
+#     user_update: UserUpdate,
+#     current_user: User = Depends(get_current_active_user),
+#     db: SQLModelSession = Depends(get_db)
+# ):
+#     update_data = user_update.dict(exclude_unset=True)
+
+#     # If password is being updated, hash it
+#     if "password" in update_data:
+#         update_data["password"] = hash_password(update_data["password"])
+
+#     for field, value in update_data.items():
+#         setattr(current_user, field, value)
+
+#     db.add(current_user)
+#     db.commit()
+#     db.refresh(current_user)
+#     return UserRead.model_validate(current_user)
+
 import uuid
-import os
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
-from sqlalchemy.orm import Session
-from src.api.schemas import API_KEY_SECRET, verify_api_key, verify_password, hash_password
-from src.api.authenticator import get_current_user, create_access_token, get_current_active_user
+from fastapi import APIRouter, Depends, HTTPException, status, Form
+from sqlmodel import Session, select
+from datetime import timedelta
+
+# Import necessary components from other modules
 from src.api.db import User, get_db, UserCreate, UserRead, UserUpdate
-from datetime import datetime, timedelta
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pwdlib import PasswordHash
-from sqlmodel import Session as SQLModelSession, select
+from src.api.authenticator import get_current_user, get_current_active_user
+# Import security helpers for hashing and token creation
+from src.api.core.security import (
+    create_access_token, verify_password, hash_password, ACCESS_TOKEN_EXPIRE_MINUTES
+)
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# Password hashing
-pwd = PasswordHash.recommended()
-
-router = APIRouter()
 
 # Registration route
-@router.post("/auth/register", response_model=UserRead)
-def register(user_data: UserCreate, db: SQLModelSession = Depends(get_db)):
+@router.post("/register", response_model=UserRead)
+def register(user_data: UserCreate, db: Session = Depends(get_db)):
     # Check if user already exists
     existing_user = db.exec(
         select(User).where(
-            (User.email == user_data.email) | (User.username == user_data.username)
+            (User.email == user_data.email) | (
+                User.username == user_data.username)
         )
     ).first()
-    
+
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username or email already registered"
         )
-    
+
     # Create new user
     hashed_password = hash_password(user_data.password)
-    print("TEST REGISTER 1")
-    
+
     user = User(
         username=user_data.username,
         email=user_data.email,
@@ -45,34 +160,37 @@ def register(user_data: UserCreate, db: SQLModelSession = Depends(get_db)):
         password=hashed_password,
         role=user_data.role,
     )
-    
+
     db.add(user)
     db.commit()
-    print("TEST REGISTER 2")
     db.refresh(user)
-    
+
     return user
 
 # Login route
-@router.post("/auth/login")
+
+
+@router.post("/login")
 def login(
     username: str = Form(...),
     password: str = Form(...),
-    db: SQLModelSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
+    # Search by username, since that is what the login form provides
     user = db.exec(select(User).where(User.username == username)).first()
-    
+
+    # Check password using imported security helper
     if not user or not verify_password(password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password"
         )
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires  
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -80,38 +198,43 @@ def login(
     }
 
 # Refresh token
-@router.post("/auth/refresh")
+
+
+@router.post("/refresh")
 def refresh_token(current_user: User = Depends(get_current_user)):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(current_user.id)}, expires_delta=access_token_expires  
+        data={"sub": str(current_user.id)}, expires_delta=access_token_expires
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer"
     }
 
 # User information and update routes
-@router.get("/auth/me", response_model=UserRead)
+
+
+@router.get("/me", response_model=UserRead)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return UserRead.model_validate(current_user)
 
-@router.put("/auth/me", response_model=UserRead)
+
+@router.put("/me", response_model=UserRead)
 async def update_user_me(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: SQLModelSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
-    update_data = user_update.dict(exclude_unset=True)
-    
+    update_data = user_update.model_dump(exclude_unset=True)
+
     # If password is being updated, hash it
     if "password" in update_data:
         update_data["password"] = hash_password(update_data["password"])
-    
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
-    
+
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
