@@ -280,15 +280,15 @@ class XGBoostTrainer:
             self.logger.info("\n" + classification_report(y, y_pred_full))
 
             #  MLflow Logging
-            if mlflow_config.is_azure_ml:
-                mlflow.xgboost.log_model(
-                    final_model, 
-                    "model",
-                    registered_model_name="churn-xgboost-model")
-            else:
-                input_example = X.head(5)
-                mlflow.xgboost.log_model(
-                    final_model, name="xgboost_final_model", input_example=input_example)
+            # if mlflow_config.is_azure_ml:
+            #     mlflow.xgboost.log_model(
+            #         final_model,
+            #         "model",
+            #         registered_model_name="churn-xgboost-model")
+            # else:
+            input_example = X.head(5)
+            mlflow.xgboost.log_model(
+                final_model, name="xgboost_final_model", input_example=input_example)
             mlflow.log_metrics(
                 {"final_accuracy": acc, "final_f1": best_f1, "final_roc_auc": roc})
             mlflow.log_metric("final_threshold", best_threshold)
@@ -324,7 +324,8 @@ class XGBoostTrainer:
             try:
                 with open(metadata_path, 'w') as f:
                     json.dump(feature_metadata, f, indent=2)
-                mlflow.log_artifact(metadata_path, artifact_path="feature_metadata")
+                mlflow.log_artifact(
+                    metadata_path, artifact_path="feature_metadata")
                 self.logger.info(
                     f"Feature metadata saved successfully at {metadata_path}")
             except Exception as e:
@@ -362,7 +363,8 @@ class XGBoostTrainer:
                     target_col = self.config.get("target_column", "target")
                     # Attempt to get DVC hash for provenance
                     try:
-                        dvc_hash = subprocess.getoutput("dvc hash data/processed/preprocessed.csv")
+                        dvc_hash = subprocess.getoutput(
+                            "dvc hash data/processed/preprocessed.csv")
                     except Exception:
                         dvc_hash = "N/A"
                     schema = {
