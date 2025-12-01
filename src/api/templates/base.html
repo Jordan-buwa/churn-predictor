@@ -241,7 +241,6 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#navbarNav"
-                aria-controls="navbarNav"
                 aria-expanded="false"
                 aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -250,11 +249,24 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="/home"><i class="fas fa-home me-1"></i> Home</a></li>
+                
+                <!-- Common menu items for all authenticated users -->
                 <li class="nav-item"><a class="nav-link" href="/ingest"><i class="fas fa-database me-1"></i> Ingest</a></li>
                 <li class="nav-item"><a class="nav-link" href="/predict"><i class="fas fa-search me-1"></i> Predict</a></li>
-                <li class="nav-item"><a class="nav-link" href="/train"><i class="fas fa-cogs me-1"></i> Train</a></li>
+                
+                <!-- Training menu - only for admin and supervisor -->
+                <li class="nav-item" id="trainMenuItem" style="display: none;">
+                    <a class="nav-link" href="/train"><i class="fas fa-cogs me-1"></i> Train</a>
+                </li>
+                
+                <!-- Metrics menu - for all authenticated users -->
                 <li class="nav-item"><a class="nav-link" href="/metrics"><i class="fas fa-chart-bar me-1"></i> Metrics</a></li>
                 <li class="nav-item"><a class="nav-link" href="/health-ui"><i class="fas fa-heartbeat me-1"></i> Health</a></li>
+                
+                <!-- Users menu - only for admin -->
+                <li class="nav-item" id="usersMenuItem" style="display: none;">
+                    <a class="nav-link" href="/users"><i class="fas fa-users-cog me-1"></i> Users</a>
+                </li>
             </ul>
             
             <div class="d-flex align-items-center">
@@ -264,17 +276,7 @@
                     <span id="statusText">System Online</span>
                 </span>
                 
-                <!-- Authentication Links -->
-                <!-- <div class="nav-auth-links" id="authLinks">
-                    <a href="/" class="btn btn-outline-light btn-sm me-2">
-                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                    </a>
-                    <a href="/pages/register" class="btn btn-light btn-sm">
-                        <i class="fas fa-user-plus me-1"></i>Register
-                    </a>
-                </div> -->
-                
-                <!-- User Menu (hidden by default) -->
+                <!-- User Menu -->
                 <div class="dropdown d-none" id="userMenu">
                     <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle me-1"></i>
@@ -291,7 +293,6 @@
         </div>
     </div>
 </nav>
-
 <!-- Shape Divider for visual interest -->
 <div class="shape-divider"></div>
 
@@ -399,6 +400,10 @@
             if (authLinks) authLinks.classList.remove('d-none');
             if (userMenu) userMenu.classList.add('d-none');
             if (statusText) statusText.textContent = 'System Online';
+            
+            // Hide role-specific menu items
+            document.getElementById('trainMenuItem')?.style.setProperty('display', 'none', 'important');
+            document.getElementById('usersMenuItem')?.style.setProperty('display', 'none', 'important');
             return;
         }
 
@@ -412,6 +417,7 @@
 
             if (response.ok) {
                 const userData = await response.json();
+                const userRole = userData.role.toLowerCase();
                 
                 // User is logged in
                 if (authLinks) authLinks.classList.add('d-none');
@@ -420,11 +426,49 @@
                     document.getElementById('usernameDisplay').textContent = userData.username;
                 }
                 if (statusText) statusText.textContent = `Logged in as ${userData.username}`;
-                
-                // Update user status badge color
+                        
+                // Update user status badge color based on role
                 if (userStatus) {
-                    userStatus.style.background = 'linear-gradient(135deg, var(--success), #2e7d32)';
+                    switch(userRole) {
+                        case 'admin':
+                            userStatus.style.background = 'linear-gradient(135deg, var(--danger), #b02a37)';
+                            break;
+                        case 'supervisor':
+                            userStatus.style.background = 'linear-gradient(135deg, var(--warning), #b17900)';
+                            break;
+                        case 'manager':
+                            userStatus.style.background = 'linear-gradient(135deg, var(--info), #0b7285)';
+                            break;
+                        default:
+                            userStatus.style.background = 'linear-gradient(135deg, var(--success), #2e7d32)';
+                    }
                 }
+                
+                // Show/hide menu items based on role
+                const trainMenuItem = document.getElementById('trainMenuItem');
+                const usersMenuItem = document.getElementById('usersMenuItem');
+                
+                // Show Train menu for admin and supervisor
+                if (trainMenuItem) {
+                    if (['admin', 'supervisor'].includes(userRole)) {
+                        trainMenuItem.style.setProperty('display', 'block', 'important');
+                    } else {
+                        trainMenuItem.style.setProperty('display', 'none', 'important');
+                    }
+                }
+                
+                // Show Users menu only for admin
+                if (usersMenuItem) {
+                    if (userRole === 'admin') {
+                        usersMenuItem.style.setProperty('display', 'block', 'important');
+                    } else {
+                        usersMenuItem.style.setProperty('display', 'none', 'important');
+                    }
+                }
+                
+                // Update role indicator in status
+                statusText.textContent = `${userData.username} (${userRole})`;
+                
             } else {
                 // Token is invalid
                 localStorage.removeItem('access_token');
@@ -432,6 +476,10 @@
                 if (authLinks) authLinks.classList.remove('d-none');
                 if (userMenu) userMenu.classList.add('d-none');
                 if (statusText) statusText.textContent = 'System Online';
+                
+                // Hide role-specific menu items
+                document.getElementById('trainMenuItem')?.style.setProperty('display', 'none', 'important');
+                document.getElementById('usersMenuItem')?.style.setProperty('display', 'none', 'important');
             }
         } catch (error) {
             console.error('Auth check failed:', error);
@@ -440,8 +488,13 @@
             if (authLinks) authLinks.classList.remove('d-none');
             if (userMenu) userMenu.classList.add('d-none');
             if (statusText) statusText.textContent = 'System Online';
+            
+            // Hide role-specific menu items
+            document.getElementById('trainMenuItem')?.style.setProperty('display', 'none', 'important');
+            document.getElementById('usersMenuItem')?.style.setProperty('display', 'none', 'important');
         }
     }
+
 
     // Logout functionality
     function setupLogout() {

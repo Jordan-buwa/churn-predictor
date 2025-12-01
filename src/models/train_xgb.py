@@ -205,7 +205,7 @@ class XGBoostTrainer:
                 #  MLflow Model Logging
                 fold_input_example = X_val.head(5)
                 mlflow.xgboost.log_model(
-                    best_model, name=f"xgboost_model_fold_{fold}", input_example=fold_input_example, registered_model_name="Churn_XGB_Model")
+                    best_model, name=f"xgboost_model_fold_{fold}", input_example=fold_input_example, artifact_path="xgboost",  registered_model_name="Churn_XGB_Model")
 
                 fold_metrics.append({
                     "fold": fold,

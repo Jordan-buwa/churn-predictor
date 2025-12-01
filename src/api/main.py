@@ -1,6 +1,6 @@
 from src.api.utils.config import get_allowed_model_types
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
-from src.api.db import engine
+from src.api.db import engine, create_admin
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
@@ -83,6 +83,15 @@ async def lifespan(app: FastAPI):
     if not validate_startup():
         logger.error("Startup validation failed, but continuing...")
 
+    # Load users at startup
+    try:
+        logger.info("Loading users...")
+        create_admin()
+        logger.info("Users loaded successfully")
+    except Exception as e:
+        logger.error(f"Error loading users: {e}")
+        logger.warning("API will start – some user endpoints may be unavailable")
+
     try:
         logger.info("Loading ML models...")
         models = load_all_models()
@@ -137,7 +146,6 @@ app.add_middleware(
 
 # Add Prometheus Middleware for Request Tracking
 
-
 @app.middleware("http")
 async def prometheus_middleware(request: Request, call_next):
     """Middleware to record request count and latency for /predict and /train."""
@@ -154,6 +162,39 @@ async def prometheus_middleware(request: Request, call_next):
             response = await call_next(request)
         return response
 
+    response = await call_next(request)
+    return response
+async def add_user_to_request(request: Request, call_next):
+    """Add user information to request state if authenticated."""
+    try:
+        # Skip authentication for public routes
+        public_routes = ["/", "/pages/register", "/auth/login", "/auth/register", "/health", "/metrics"]
+        if request.url.path in public_routes or request.url.path.startswith("/static"):
+            response = await call_next(request)
+            return response
+        
+        # Get authorization header
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            # Create a mock dependency context
+            from fastapi.security import HTTPAuthorizationCredentials
+            credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=auth_header[7:])
+            
+            # Get database session
+            from src.api.db import get_db
+            db = next(get_db())
+            
+            try:
+                # Get current user
+                user = await get_current_user(credentials, db)
+                request.state.user = user
+            except HTTPException:
+                request.state.user = None
+        else:
+            request.state.user = None
+    except Exception:
+        request.state.user = None
+    
     response = await call_next(request)
     return response
 
@@ -233,6 +274,12 @@ async def ui_data_view(request: Request):
     return templates.TemplateResponse("data_view.html", {"request": request})
 
 
+@app.get("/users", response_class=HTMLResponse)
+async def ui_users(request: Request):
+    """Users page – displays all API users (admin-only)"""
+    return templates.TemplateResponse("users.html", {"request": request})
+
+
 @app.get("/health-ui", response_class=HTMLResponse)
 async def health_ui(request: Request):
     """Human-readable health page (uses health.html)"""
@@ -252,7 +299,6 @@ async def health_check():
         "models_loaded": len(loaded),
         "models": models_info,
         "environment": os.getenv('ENVIRONMENT', 'development'),
-        "storage_account": os.getenv('AZURE_STORAGE_ACCOUNT_NAME'),
         "version": "2.0.0"
     }
 
@@ -270,11 +316,3 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
-
-
-@app.on_event("startup")
-def on_startup():
-    # Skip DB initialization in test environment to avoid external depends
-    if os.getenv("ENVIRONMENT", "development") == "test":
-        return
-    SQLModel.metadata.create_all(bind=engine)

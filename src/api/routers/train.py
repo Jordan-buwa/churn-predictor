@@ -198,7 +198,8 @@ def get_script_path(model_type: str) -> str:
 async def start_single_training(
     model_type: str,
     background_tasks: BackgroundTasks,
-    request: Optional[TrainingRequest] = None
+    request: Optional[TrainingRequest] = None,
+    admin_user: User = Depends(admin_only_access)
 ) -> str:
     """Start a single training job with optional hyperparameters."""
 
