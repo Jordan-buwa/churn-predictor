@@ -1,6 +1,6 @@
 {
   "model_type": "random_forest",
-  "model_version": "random_forest_churn_v20251110_021444",
+  "model_version": "random_forest_churn_v20251129_213735",
   "required_columns": [
     "engagement_index",
     "model_change_rate",
@@ -25,7 +25,7 @@
   },
   "target_column": "churn",
   "schema_version": "1.0",
-  "timestamp": "2025-11-10T02:14:44.955001",
+  "timestamp": "2025-11-29T21:37:35.143610",
   "feature_count": 9,
   "sample_count": 97746,
   "class_distribution": {
