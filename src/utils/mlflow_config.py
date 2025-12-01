@@ -29,6 +29,7 @@ class AzureMLFlowConfig:
         """Setup local MLflow tracking"""
         mlflow.set_tracking_uri(
             os.getenv("MLFLOW_TRACKING_URI", "http://localhost:8080"))
+
         logger.info("MLflow configured for local tracking")
 
     def get_experiment_name(self, base_name: str) -> str:

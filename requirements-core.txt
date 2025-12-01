@@ -14,7 +14,7 @@ flask==3.0.2
 # API & Web
 fastapi==0.110.0
 uvicorn==0.29.0
-python-multipart==0.0.9
+python-multipart==0.0.20
 PyYAML==6.0.1
 opencensus-ext-azure==1.1.7
 opencensus-ext-logging==0.1.1
