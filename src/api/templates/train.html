@@ -58,11 +58,9 @@
         e.preventDefault();
         const fd = new FormData(e.target);
         const payload = Object.fromEntries(fd);
-
+        const token = localStorage.getItem('access_token');
         const modelType = payload.model_type;
 
-        // CRITICAL FIX: Always use the parameterized endpoint /train/{model_type} 
-        // This includes for 'all', which becomes /train/all
         const endpoint = `/train/${modelType}`;
 
         // Convert checkbox values
@@ -81,8 +79,6 @@
         } else {
             payload.hyperparameters = null;
         }
-
-        // The payload body naturally includes model_type since we didn't delete it this time.
 
         try {
             // Updated fetch call using the dynamically constructed endpoint

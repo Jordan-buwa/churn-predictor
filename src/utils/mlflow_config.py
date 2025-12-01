@@ -28,7 +28,7 @@ class AzureMLFlowConfig:
             logger.info(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
         except Exception as e:
             logger.warning(f"Failed to setup MLflow, using local: {str(e)}")
-            mlflow.set_tracking_uri("http://localhost:8080")
+            mlflow.set_tracking_uri("http://127.0.0.1:8080")
     
     def _setup_azure_ml(self):
         """Setup Azure ML tracking"""
@@ -50,7 +50,7 @@ class AzureMLFlowConfig:
     
     def _setup_local_mlflow(self):
         """Setup local MLflow tracking"""
-        mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:8080"))
+        mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:8080"))
         logger.info("MLflow configured for local tracking")
     
     def get_experiment_name(self, base_name: str) -> str:

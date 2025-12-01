@@ -106,9 +106,4 @@ def create_admin():
         print(f"Error: {e}")
     finally:
         db.close()
-
-# Appeler create_tables() au démarrage
 create_tables()
-
-if __name__ == "__main__":
-    create_admin()

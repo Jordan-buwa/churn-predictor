@@ -51,6 +51,16 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-3x mb-3"></i>
+                                <h5>Users</h5>
+                                <p>Manage system users</p>
+                                <a href="/users" class="btn btn-light btn-sm">View Users</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="row mt-4">
@@ -95,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (response.ok) {
             const userData = await response.json();
             document.getElementById('userDetails').innerHTML = `
@@ -104,6 +114,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <strong>Role:</strong> ${userData.role}<br>
                 <strong>Phone:</strong> ${userData.phone || 'Not provided'}
             `;
+            
+            // Hide Users dashboard card if not admin
+            if (userData.role !== 'admin') {
+                const usersCard = document.querySelector('.card a[href="/users"]').closest('.col-md-3');
+                if (usersCard) {
+                    usersCard.style.display = 'none';
+                }
+            }
+
+
+
+
         } else {
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');
