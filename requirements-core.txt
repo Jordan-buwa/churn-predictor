@@ -5,6 +5,7 @@ scikit-learn==1.4.2
 scipy==1.12.0
 joblib==1.4.2
 evidently==0.4.25
+python-jose[cryptography]==3.3.0
 
 # Monitoring
 prometheus-client==0.19.0
