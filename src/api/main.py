@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import Response
 import logging
 import sys
 import os
@@ -19,7 +20,6 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent.parent))
 
 # PROMETHEUS METRIC DEFINITIONS
-
 try:
     # Counter: Tracks total number of requests for specific endpoints
     REQUEST_COUNT = Counter(
@@ -37,6 +37,12 @@ try:
     MODEL_LOADED_GAUGE = Gauge(
         'fastapi_loaded_models_count',
         'Number of ML models currently loaded in memory'
+    )
+    # Error Count
+    ERROR_COUNT = Counter(
+        'fastapi_request_error',
+        'Total number of failed requests received',
+        ['endpoint', 'error_code']
     )
 except ValueError:
     pass
@@ -150,6 +156,7 @@ app.add_middleware(
 async def prometheus_middleware(request: Request, call_next):
     """Middleware to record request count and latency for /predict and /train."""
     path = request.url.path
+    method = request.method
 
     # Only record metrics for the endpoints we care about monitoring
     if path.startswith("/predict") or path.startswith("/train"):
@@ -160,6 +167,35 @@ async def prometheus_middleware(request: Request, call_next):
             REQUEST_COUNT.labels(endpoint=path).inc()
 
             response = await call_next(request)
+        return response
+
+    response = None
+    try:
+        # Call the next middleware/endpoint handler
+        response = await call_next(request)
+
+        # Check for application-generated errors (Status >= 400)
+        status_code = response.status_code
+
+        if status_code >= 400:
+            # Log the specific application error code (e.g., 404, 403, 503)
+            ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
+
+        return response
+
+    except Exception as e:
+        # For unhandled exceptions, we default to the standard 500 Internal Server Error
+        status_code = 500
+
+        # Log the 500 error code
+        ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
+
+        # Must generate a 500 response to return to the client if none was created
+        if response is None:
+            response = Response("Internal Server Error", status_code=500)
+
+        # In some frameworks, you might need to raise the exception again
+        # for higher-level error handlers, but here we return the 500 Response.
         return response
 
     response = await call_next(request)
