@@ -118,10 +118,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"Model loading error: {e}")
         logger.warning("API will start – some endpoints may be unavailable")
 
-    # Mount Prometheus Metrics
-    metrics_app = make_asgi_app()
-    app.mount("/metrics", metrics_app)
-
     # Yield control to FastAPI
     yield
 
@@ -144,11 +140,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"Model loading error: {e}")
         logger.warning("API will start – some endpoints may be unavailable")
 
-   # Mount the /metrics endpoint for Prometheus scraping
-    # This exposes the raw Prometheus metrics text format
-    metrics_app = make_asgi_app()
-    app.mount("/metrics", metrics_app)
-
     yield
 
     logger.info("Shutting down API server...")
@@ -165,6 +156,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Mount Prometheus Metrics
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 origins = [
     "http://localhost:8000",
