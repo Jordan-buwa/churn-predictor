@@ -35,3 +35,4 @@ pinned-requirements.txt
 mlartifacts/
 b.yml
 docker_clean.sh
+.pytest_cache/

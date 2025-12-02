@@ -25,6 +25,27 @@ services:
     networks:
         - monitor-net
 
+  # MLFLOW SERVER
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.5.1
+    container_name: mlflow
+    env_file:
+      - .env
+    environment:
+      - RUNNING_IN_DOCKER=1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mlflow:/mlflow
+      - ./mlflow/mlruns:/mlruns
+      - ./mlflow/mlartifacts:/mlartifacts
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --host 0.0.0.0
+      --port 8080
+      --allowed-hosts "*"
+
   trainer:
     build:
       context: .
@@ -37,6 +58,8 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}   
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+    depends_on:
+      - mlflow
     deploy:
       replicas: 1   
     networks:
@@ -58,6 +81,7 @@ services:
     # DEPENDS ON 'api' to ensure target is up
     depends_on:
       - api 
+      - mlflow
     networks:
       - monitor-net
 
