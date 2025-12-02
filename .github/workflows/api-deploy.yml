@@ -1,5 +1,5 @@
 name: Deploy Churn Predictor
-run-name: Deploy by @${{ github.actor }} · ${{ github.sha }}
+run-name: Deploy by @${{ github.actor }}
 
 on:
   push:
