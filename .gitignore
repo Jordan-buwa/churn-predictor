@@ -33,3 +33,5 @@ docker-compose.azure.yml
 *.save.*
 pinned-requirements.txt
 mlartifacts/
+b.yml
+docker_clean.sh
