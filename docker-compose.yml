@@ -16,9 +16,6 @@ services:
       - POSTGRES_HOST=${POSTGRES_HOST}               
       - API_KEY_SECRET=${API_KEY_SECRET}
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
-      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -39,9 +36,6 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}   
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
-      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
     deploy:
       replicas: 1   
     networks:

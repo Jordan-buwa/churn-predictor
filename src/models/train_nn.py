@@ -20,7 +20,8 @@ import numpy as np
 import pandas as pd
 import subprocess
 import warnings
-import os, sys
+import os
+import sys
 import logging
 import mlflow
 import torch
@@ -41,6 +42,7 @@ config_path = "config/config_train_nn.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 logger = logging.getLogger(__name__)
+
 
 class NeuralNetworkTrainer():
     def __init__(self, X, y, config, device, MODEL_DIR=MODEL_DIR):
@@ -65,24 +67,27 @@ class NeuralNetworkTrainer():
         self.dvc_hash = None
         self.smote = SMOTETomek(random_state=self.random_state)
         self.skf = StratifiedKFold(n_splits=self.num_splits_cv,
-                                    shuffle=True, 
-                                    random_state=self.random_state)
+                                   shuffle=True,
+                                   random_state=self.random_state)
         self.criterion = torch.nn.BCELoss()
         setup_mlflow()
-        self.experiment_name = mlflow_config.get_experiment_name("NeuralNet_Churn_Experiment")
+        self.experiment_name = mlflow_config.get_experiment_name(
+            "NeuralNet_Churn_Experiment")
 
     def create_fold_dataloaders(self):
         return create_fold_dataloaders(self.X, self.y, self.num_splits_cv, self.batch_size, self.random_state)
-    
+
     def tuner(self):
         return run_optuna_optimization(self.X, self.y, self.n_trials, self.device)
+
     def train_model(self, train_loader):
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.learning_rate)
         return train_model(self.model, train_loader, self.criterion, self.optimizer, self.num_epochs, self.device)
+
     def evaluate_model(self, X_test_tensor, y_test_tensor):
         return evaluate_model(self.model, X_test_tensor, y_test_tensor, self.device)
 
-    
     def get_prediction_threshold(self, y_true, y_probs):
         best_thresh, best_f1 = 0.5, 0
         for t in [i * 0.01 for i in range(1, 100)]:
@@ -92,11 +97,14 @@ class NeuralNetworkTrainer():
                 best_f1 = score
                 best_thresh = t
         return best_thresh, best_f1
+
     def train_and_tune(self):
         # Run Optuna optimization
-        self.logger.info("Starting hyperparameter optimization with Optuna.....")
+        self.logger.info(
+            "Starting hyperparameter optimization with Optuna.....")
         study = self.tuner()
-        self.logger.info(f"Hyperparameter optimization completed!\nBest Hyperparameters: {study.best_params}\nBest AUC-ROC: {study.best_value:.4f}")
+        self.logger.info(
+            f"Hyperparameter optimization completed!\nBest Hyperparameters: {study.best_params}\nBest AUC-ROC: {study.best_value:.4f}")
         print("\nBest Hyperparameters:", study.best_params)
         print(f"Best F1-score: {study.best_value:.4f}")
         self.best_params = study.best_params
@@ -104,7 +112,8 @@ class NeuralNetworkTrainer():
 
         # Train final model with best params
         self.n_layers = self.best_params["n_layers"]
-        self.n_units = [self.best_params[f"n_units_{i}"] for i in range(self.n_layers)]
+        self.n_units = [
+            self.best_params[f"n_units_{i}"] for i in range(self.n_layers)]
         self.dropout_rate = self.best_params["dropout_rate"]
         self.learning_rate = self.best_params["learning_rate"]
 
@@ -125,7 +134,8 @@ class NeuralNetworkTrainer():
         self.logger.info(f"MLflow tracking URI: {mlflow_uri}")
         # Use nested run to avoid conflicts with parent MLflow run
         with mlflow.start_run(nested=True):
-            script_name = os.path.basename(__file__) if "__file__" in globals() else "notebook"
+            script_name = os.path.basename(
+                __file__) if "__file__" in globals() else "notebook"
             mlflow.set_tag("script_version", script_name)
             mlflow.log_param("num_samples", self.X.shape[0])
             mlflow.log_param("num_features", self.X.shape[1])
@@ -133,27 +143,37 @@ class NeuralNetworkTrainer():
             # Log hyperparameters
             mlflow.log_params(self.best_params)
 
-            metrics_all = {"AUC": [], "F1": [], "Recall": [], "Precision": [], "Accuracy": []}
+            metrics_all = {"AUC": [], "F1": [], "Recall": [],
+                           "Precision": [], "Accuracy": []}
             y_true_global = []
             y_pred_global = []
             self.logger.info("Training final model with cross-validation...")
             for fold, (train_idx, test_idx) in enumerate(self.skf.split(self.X, self.y)):
                 X_train, y_train = self.X.iloc[train_idx], self.y.iloc[train_idx]
                 X_test, y_test = self.X.iloc[test_idx], self.y.iloc[test_idx]
-                X_train_res, y_train_res = self.smote.fit_resample(X_train, y_train)
+                X_train_res, y_train_res = self.smote.fit_resample(
+                    X_train, y_train)
 
-                X_train_tensor = torch.tensor(X_train_res.values, dtype=torch.float32)
-                y_train_tensor = torch.tensor(y_train_res.values, dtype=torch.float32)
-                X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-                y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32)
+                X_train_tensor = torch.tensor(
+                    X_train_res.values, dtype=torch.float32)
+                y_train_tensor = torch.tensor(
+                    y_train_res.values, dtype=torch.float32)
+                X_test_tensor = torch.tensor(
+                    X_test.values, dtype=torch.float32)
+                y_test_tensor = torch.tensor(
+                    y_test.values, dtype=torch.float32)
 
-                train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
-                train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+                train_dataset = torch.utils.data.TensorDataset(
+                    X_train_tensor, y_train_tensor)
+                train_loader = torch.utils.data.DataLoader(
+                    train_dataset, batch_size=self.batch_size, shuffle=True)
 
-                self.model = ChurnNN(input_size=self.X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
+                self.model = ChurnNN(
+                    input_size=self.X.shape[1], n_layers=self.n_layers, n_units=self.n_units, dropout_rate=self.dropout_rate)
 
                 self.model, _ = self.train_model(train_loader)
-                disp, metrics = self.evaluate_model(X_test_tensor, y_test_tensor)
+                disp, metrics = self.evaluate_model(
+                    X_test_tensor, y_test_tensor)
                 # Plot confusion matrix
                 if fold+1 == self.num_splits_cv:
                     _, ax = plt.subplots(figsize=(6, 6))
@@ -162,7 +182,8 @@ class NeuralNetworkTrainer():
                     mlflow.log_artifact("images/confusion_matrix.png")
                 # Predict probabilities and determine best threshold
                 y_probs = self.model.predict_proba(X_test).flatten()
-                best_threshold, best_f1 = self.get_prediction_threshold(y_test, y_probs)
+                best_threshold, best_f1 = self.get_prediction_threshold(
+                    y_test, y_probs)
                 y_pred = (y_probs >= best_threshold).astype(int)
 
                 acc = accuracy_score(y_test, y_pred)
@@ -214,7 +235,8 @@ class NeuralNetworkTrainer():
             self.logger.info(f"Global F1 across all folds: {global_f1:.4f}")
             mlflow.log_metric("global_f1", global_f1)
             y_probs_full = self.model.predict_proba(self.X).flatten()
-            best_threshold, best_f1 = self.get_prediction_threshold(self.y, y_probs_full)
+            best_threshold, best_f1 = self.get_prediction_threshold(
+                self.y, y_probs_full)
             y_pred_full = (y_probs_full >= best_threshold).astype(int)
 
             acc = accuracy_score(self.y, y_pred_full)
@@ -240,18 +262,18 @@ class NeuralNetworkTrainer():
                     "final_roc_auc": float(roc),
                     "final_threshold": float(best_threshold)
                 }
-        if mlflow_config.is_azure_ml:
-            mlflow.pytorch.log_model(
-                self.model, 
-                "model",
-                registered_model_name="churn-neuralnet-model"
-            )
-        else:
-            mlflow.pytorch.log_model(self.model, "model")        
+        # if mlflow_config.is_azure_ml:
+        #     mlflow.pytorch.log_model(
+        #         self.model,
+        #         "model",
+        #         registered_model_name="churn-neuralnet-model"
+        #     )
+        # else:
+        mlflow.pytorch.log_model(self.model, "model")
         return self
-        
+
     # Save model using centralized store
-    def save_model(self): 
+    def save_model(self):
         try:
             from src.models.utils.model_store import save_model_artifacts
             # Build schema artifact for parity with RF/XGB
@@ -285,7 +307,8 @@ class NeuralNetworkTrainer():
             print(f"Error saving model: {e}")
             raise
 
-        assert os.path.exists(model_path), f"Model file not found at {model_path}"
+        assert os.path.exists(
+            model_path), f"Model file not found at {model_path}"
         try:
             mlflow.log_artifact(model_path, artifact_path="nn_churn_model")
         except Exception:
@@ -294,15 +317,18 @@ class NeuralNetworkTrainer():
         print(f"Model saved at {model_path}")
         self.logger.info(f"Model saved at {model_path}")
         return model_path
+
     def register_model(self):
         # Register model
         try:
             run_id = mlflow.active_run().info.run_id
             mlflow.register_model(f"runs:/{run_id}/model", "nn_churn_model")
-            self.logger.info(f"Model registered in MLflow Registry as 'nn_churn_model'")
+            self.logger.info(
+                f"Model registered in MLflow Registry as 'nn_churn_model'")
         except Exception as e:
             self.logger.warning(f"Failed to register model: {e}")
         return self
+
     def save_logs_on_local(self, path="src/data_pipeline/training/logs/"):
         # Save training logs
         os.makedirs(path, exist_ok=True)
@@ -315,16 +341,18 @@ class NeuralNetworkTrainer():
                         handler.stream.seek(0)
                         f.write(handler.stream.read())
             self.logger.info(f"Training logs saved at {log_file}")
-            mlflow.log_artifact(log_file, artifact_path="training_logs", run_id=mlflow.active_run().info.run_id)
+            mlflow.log_artifact(
+                log_file, artifact_path="training_logs", run_id=mlflow.active_run().info.run_id)
         except Exception as e:
             self.logger.error(f"Error saving training logs: {e}")
         return self
-        
-    
+
+
 if __name__ == "__main__":
     if os.path.exists("data/processed/processed_data.csv"):
         df_processed = pd.read_csv("data/processed/processed_data.csv")
-    else: df_processed = fetch_preprocessed()
+    else:
+        df_processed = fetch_preprocessed()
     # Features & target
     target_col = config["target_column"]
     X = df_processed.drop(columns=[target_col])
@@ -333,5 +361,5 @@ if __name__ == "__main__":
     trainer = NeuralNetworkTrainer(X, y, config, device)
     trainer.train_and_tune()
     trainer.save_model()
-    trainer.register_model() 
+    trainer.register_model()
     trainer.save_logs_on_local()
