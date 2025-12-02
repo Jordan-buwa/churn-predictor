@@ -356,6 +356,7 @@ async def ui_users(request: Request):
 async def ui_data_view(request: Request):
     return templates.TemplateResponse("data_view.html", {"request": request})
 
+
 @app.get("/health-ui", response_class=HTMLResponse)
 async def health_ui(request: Request):
     """Human-readable health page (uses health.html)"""
