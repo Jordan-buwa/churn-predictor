@@ -56,10 +56,40 @@ jobs:
           script: |
             set -e
             APP_DIR="/home/${{ secrets.AZURE_USER }}/churn-predictor"
-            # Clone or update repo
+            # Check if repository exists
             if [ ! -d "$APP_DIR" ]; then
-              git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                echo "Repository doesn't exist. Cloning..."
+                git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                cd "$APP_DIR"
+            else
+                echo "Repository exists, attempting to pull changes..."
+                cd "$APP_DIR"
+                
+                # Try to pull changes
+                if git pull origin main; then
+                    echo "✅ Successfully pulled latest changes from main"
+                else
+                    echo "❌ Git pull failed. This could be due to:"
+                    echo "   - Local changes conflicting"
+                    echo "   - Force push to remote"
+                    echo "   - Repository corruption"
+                    
+                    echo "Deleting local repository and cloning fresh..."
+                    
+                    # Go to parent directory
+                    cd ..
+                    
+                    # Remove the entire directory
+                    rm -rf "$APP_DIR"
+                    
+                    # Clone fresh
+                    git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                    cd "$APP_DIR"
+                    
+                    echo "✅ Fresh clone completed"
+                fi
             fi
+
             cd "$APP_DIR"
             git checkout main
             git fetch --all && git reset --hard origin/main
