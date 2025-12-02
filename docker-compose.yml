@@ -45,24 +45,24 @@ services:
       --port 8080
       --allowed-hosts "*"
 
-  trainer:
-    build:
-      context: .
-      dockerfile: docker/api/Dockerfile
-    command: python retrain.py
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB_USER=${POSTGRES_DB_USER}
-      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_HOST=${POSTGRES_HOST}   
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-    depends_on:
-      - mlflow
-    deploy:
-      replicas: 1   
-    networks:
-      - monitor-net
+  # trainer:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/api/Dockerfile
+  #   command: python retrain.py
+  #   environment:
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_DB_USER=${POSTGRES_DB_USER}
+  #     - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+  #     - POSTGRES_PORT=${POSTGRES_PORT}
+  #     - POSTGRES_HOST=${POSTGRES_HOST}   
+  #     - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+  #   depends_on:
+  #     - mlflow
+  #   deploy:
+  #     replicas: 1   
+  #   networks:
+  #     - monitor-net
 
 # PROMETHEUS SERVER
   prometheus:
