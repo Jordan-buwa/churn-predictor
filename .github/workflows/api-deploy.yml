@@ -36,7 +36,8 @@ jobs:
     name: Deploy to Azure VM
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
+    needs: test
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,6 +55,7 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
+            sudo apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
             APP_DIR="/home/${{ secrets.AZURE_USER }}/churn-predictor"
             # Clone or update repo
             if [ ! -d "$APP_DIR" ]; then
