@@ -9,7 +9,7 @@ from datetime import datetime, UTC
 from typing import Dict, Optional
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 # CORE UTILITY IMPORTS
 from src.api.utils.config import APIConfig, get_allowed_model_types, get_model_path as cfg_get_model_path
@@ -44,6 +44,8 @@ training_jobs: Dict[str, Dict] = {}
 
 class TrainingRequest(BaseModel):
     # Added back for the model body consistency (though path parameter is primary)
+    model_config = ConfigDict(protected_namespaces=())
+
     model_type: str
     retrain: bool = False
     use_cv: bool = True

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional, List, Union
 from enum import Enum
 import datetime
@@ -132,6 +132,8 @@ class TestDataset(BaseModel):
 
 class PredictionData(BaseModel):
     """Standardized prediction data format."""
+    model_config = ConfigDict(protected_namespaces=())
+
     model_type: str
     prediction: Union[float, int, List[float]]
     confidence: Optional[float] = None
