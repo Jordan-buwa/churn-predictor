@@ -84,7 +84,6 @@ jobs:
                     
                     # Clone fresh
                     git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
-                    cd "$APP_DIR"
                     
                     echo "✅ Fresh clone completed"
                 fi
