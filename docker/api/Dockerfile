@@ -19,6 +19,7 @@ COPY src/ ./src/
 COPY models ./models
 COPY data/ ./data
 
+COPY test_input.json .
 COPY retrain.py .
 
 # Set Python path

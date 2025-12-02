@@ -3,11 +3,6 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  # The job to scrape Prometheus itself
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-      
   - job_name: 'churn_predictor_api'
     static_configs:
       - targets: ['api:8000']  

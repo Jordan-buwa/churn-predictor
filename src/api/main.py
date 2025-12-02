@@ -1,6 +1,6 @@
 from src.api.utils.config import get_allowed_model_types
 from src.api.utils.error_handlers import api_exception_handler, validation_exception_handler
-from src.api.db import engine, create_admin
+from src.api.db import engine
 from src.api.ml_models import load_all_models, clear_models, get_all_models_info
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
@@ -99,10 +99,13 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "API will start – some user endpoints may be unavailable")
 
+    # Load ML models
     try:
         logger.info("Loading ML models...")
         models = load_all_models()
         logger.info(f"Loaded {len(models)} models")
+    except Exception as e:
+        logger.error(f"Error loading ML models: {e}")
 
  # Update Prometheus Gauge on startup
         update_model_count()
@@ -253,9 +256,37 @@ async def add_user_to_request(request: Request, call_next):
 
     response = await call_next(request)
     return response
+    try:
+        # Call the next middleware/endpoint handler
+        response = await call_next(request)
 
-    response = await call_next(request)
-    return response
+        # Check for application-generated errors (Status >= 400)
+        status_code = response.status_code
+
+        if status_code >= 400:
+            # Log the specific application error code (e.g., 404, 403, 503)
+            ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
+
+        return response
+
+    except Exception as e:
+        # For unhandled exceptions, we default to the standard 500 Internal Server Error
+        status_code = 500
+
+        # Log the 500 error code
+        ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
+
+        # Must generate a 500 response to return to the client if none was created
+        if response is None:
+            response = Response("Internal Server Error", status_code=500)
+
+        # In some frameworks, you might need to raise the exception again
+        # for higher-level error handlers, but here we return the 500 Response.
+        return response
+
+
+response = await call_next(request)
+return response
 
 
 # templates
@@ -334,12 +365,6 @@ async def ui_data_view(request: Request):
     return templates.TemplateResponse("data_view.html", {"request": request})
 
 
-@app.get("/users", response_class=HTMLResponse)
-async def ui_users(request: Request):
-    """Users page – displays all API users (admin-only)"""
-    return templates.TemplateResponse("users.html", {"request": request})
-
-
 @app.get("/health-ui", response_class=HTMLResponse)
 async def health_ui(request: Request):
     """Human-readable health page (uses health.html)"""
@@ -359,6 +384,7 @@ async def health_check():
         "models_loaded": len(loaded),
         "models": models_info,
         "environment": os.getenv('ENVIRONMENT', 'development'),
+        "storage_account": os.getenv('AZURE_STORAGE_ACCOUNT_NAME'),
         "version": "2.0.0"
     }
 
@@ -376,3 +402,11 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+
+
+@app.on_event("startup")
+def on_startup():
+    # Skip DB initialization in test environment to avoid external depends
+    if os.getenv("ENVIRONMENT", "development") == "test":
+        return
+    SQLModel.metadata.create_all(bind=engine)
