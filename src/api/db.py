@@ -235,3 +235,4 @@ def create_admin():
         print(f"Error during admin creation: {e}")
     finally:
         db.close()
+create_tables()
