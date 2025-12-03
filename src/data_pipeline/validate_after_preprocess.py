@@ -1,9 +1,11 @@
+from fileinput import filename
 import pandas as pd
 import numpy as np
 import yaml
 import logging
 from typing import Dict, Any
 import os
+from pathlib import Path
 from datetime import datetime
 from src.data_pipeline.preprocess import DataPreprocessor
 
@@ -11,7 +13,12 @@ from src.data_pipeline.preprocess import DataPreprocessor
 def load_config(config_path: str) -> Dict[str, Any]:
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
-log_path = "src/data_pipeline/logs/preprocessed/validation.log"
+# Setup logging
+log_path = "src/data_pipeline/logs/preprocessed/"
+os.makedirs(log_path, exist_ok=True)
+filname = "validation.log"
+log_path = Path(log_path).joinpath(filname).touch()
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename=log_path,

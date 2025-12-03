@@ -1,5 +1,5 @@
 name: Deploy Churn Predictor
-run-name: Deploy by @${{ github.actor }} · ${{ github.sha }}
+run-name: Deploy by @${{ github.actor }}
 
 on:
   push:
@@ -55,13 +55,46 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
             APP_DIR="/home/${{ secrets.AZURE_USER }}/churn-predictor"
-            # Clone or update repo
+            # Check if repository exists
             if [ ! -d "$APP_DIR" ]; then
-              git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                echo "Repository doesn't exist. Cloning..."
+                git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                cd "$APP_DIR"
+            else
+                echo "Repository exists, attempting to pull changes..."
+                cd "$APP_DIR"
+                
+                # Try to pull changes
+                if git pull origin main; then
+                    echo "✅ Successfully pulled latest changes from main"
+                else
+                    echo "❌ Git pull failed. This could be due to:"
+                    echo "   - Local changes conflicting"
+                    echo "   - Force push to remote"
+                    echo "   - Repository corruption"
+                    
+                    echo "Deleting local repository and cloning fresh..."
+                    
+                    # Go to parent directory
+                    cd ..
+                    
+                    # Remove the entire directory
+                    rm -rf "$APP_DIR"
+                    
+                    # Clone fresh
+                    git clone https://github.com/Jordan-buwa/churn-predictor.git "$APP_DIR"
+                    
+                    echo "✅ Fresh clone completed"
+                fi
             fi
+
             cd "$APP_DIR"
+            source .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # Ensure on main branch
             git checkout main
             git fetch --all && git reset --hard origin/main
             # Create .env file from secrets
@@ -73,6 +106,7 @@ jobs:
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             DATABASE_URL=postgresql://${{ secrets.POSTGRES_DB_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB_NAME }}?sslmode=require
             MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
+            API_KEY_SECRET=${{ secrets.API_KEY_SECRET }}
             EOF
             echo ".env created."
             # Restart services
