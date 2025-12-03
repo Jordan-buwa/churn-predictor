@@ -22,7 +22,6 @@ logging.basicConfig(
 
 # --- Pydantic Models ---
 
-
 class IngestResponse(BaseModel):
     """Response model for data ingestion"""
     success: bool
