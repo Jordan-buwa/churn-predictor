@@ -17,7 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Azure ML dependencies
 RUN pip install azure-ai-ml azure-identity
-
 # Copy application code
 COPY data ./data/
 COPY src/ ./src/
@@ -39,6 +38,7 @@ ENV PYTHONPATH=/app
 ENV MODEL_DIR=/app/models
 ENV LOG_LEVEL=INFO
 ENV ENVIRONMENT=production
+
 
 # Run the API
 CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

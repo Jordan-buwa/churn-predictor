@@ -158,7 +158,7 @@ class XGBoostTrainer:
                         objective='binary:logistic',
                         eval_metric='logloss',
                         random_state=self.config["random_state"],
-                        n_jobs=-1  # Use all available cores
+                        n_jobs=-1
                     )
 
                     tuner = RandomizedSearchCV(
@@ -169,7 +169,7 @@ class XGBoostTrainer:
                         cv=3,
                         n_jobs=-1,
                         random_state=self.config["random_state"],
-                        verbose=1  # Add progress output
+                        verbose=1
                     )
 
                     self.logger.info(
@@ -205,7 +205,12 @@ class XGBoostTrainer:
                 #  MLflow Model Logging
                 fold_input_example = X_val.head(5)
                 mlflow.xgboost.log_model(
-                    best_model, name=f"xgboost_model_fold_{fold}", input_example=fold_input_example, artifact_path="xgboost",  registered_model_name="Churn_XGB_Model")
+                    best_model,
+                    input_example=fold_input_example,
+                    # Changed to artifact_path
+                    artifact_path=f"xgboost/fold_{fold}",
+                    registered_model_name="Churn_XGB_Model"
+                )
 
                 fold_metrics.append({
                     "fold": fold,
@@ -279,16 +284,7 @@ class XGBoostTrainer:
                 f"Final model: Accuracy={acc:.4f}, F1={best_f1:.4f}, ROC-AUC={roc:.4f}")
             self.logger.info("\n" + classification_report(y, y_pred_full))
 
-            #  MLflow Logging
-            # if mlflow_config.is_azure_ml:
-            #     mlflow.xgboost.log_model(
-            #         final_model,
-            #         "model",
-            #         registered_model_name="churn-xgboost-model")
-            # else:
-            input_example = X.head(5)
-            mlflow.xgboost.log_model(
-                final_model, name="xgboost_final_model", input_example=input_example)
+            # MLflow Logging (Removed previous incomplete log_model call)
             mlflow.log_metrics(
                 {"final_accuracy": acc, "final_f1": best_f1, "final_roc_auc": roc})
             mlflow.log_metric("final_threshold", best_threshold)
@@ -299,15 +295,15 @@ class XGBoostTrainer:
             joblib.dump(X, preproc_path)
             mlflow.log_artifact(preproc_path)
 
-            from mlflow.models import infer_signature
             signature = infer_signature(X, final_model.predict(X))
             input_example = X.head(5)
 
             mlflow.xgboost.log_model(
                 final_model,
-                name="xgboost_final_model",
+                artifact_path="xgboost_final_model",
                 signature=signature,
-                input_example=input_example)
+                input_example=input_example
+            )
 
             # Log feature names and other relevant metadata
             feature_metadata = {
@@ -361,7 +357,6 @@ class XGBoostTrainer:
             try:
                 if X is not None and y is not None:
                     target_col = self.config.get("target_column", "target")
-                    # Attempt to get DVC hash for provenance
                     try:
                         dvc_hash = subprocess.getoutput(
                             "dvc hash data/processed/preprocessed.csv")
