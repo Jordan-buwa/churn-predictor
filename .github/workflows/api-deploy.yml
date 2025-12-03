@@ -90,11 +90,6 @@ jobs:
             fi
 
             cd "$APP_DIR"
-            python3 -m venv .venv
-            source .venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
             # Ensure on main branch
             git checkout main
             git fetch --all && git reset --hard origin/main
