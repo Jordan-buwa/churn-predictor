@@ -380,7 +380,8 @@ class DataPreprocessor:
         self.logger.info("Saving processed data...")
 
         # Local save
-        path = os.makedirs("data/processed/", exist_ok=True)
+        path = "data/processed/"
+        os.makedirs(path , exist_ok=True)
         local_path = Path(path).joinpath("processed_data.csv").touch()
         self.df.to_csv(local_path, index=False)
         self.logger.info("Processed data saved locally.")
