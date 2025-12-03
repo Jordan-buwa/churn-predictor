@@ -1,0 +1,20 @@
+# Use a lightweight official Python image
+FROM python:3.11-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the required files
+COPY requirements-ml.txt .
+COPY requirements-core.txt .
+
+# Install dependencies (mlflow, prometheus_client)
+RUN pip install --no-cache-dir -r requirements-ml.txt
+RUN pip install --no-cache-dir -r requirements-core.txt
+
+COPY mlflow/mlflow_metrics_exporter.py .
+# Port 9100 is the default port for Prometheus exporters
+EXPOSE 9100
+
+#Set the entry point to run the script. It is now in the /app directory.
+CMD ["python", "mlflow_metrics_exporter.py"]

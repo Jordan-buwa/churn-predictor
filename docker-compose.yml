@@ -15,7 +15,7 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}               
       - API_KEY_SECRET=${API_KEY_SECRET}
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_TRACKING_URI=http://mlflow:8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -45,25 +45,56 @@ services:
       --host 0.0.0.0
       --port 8080
       --allowed-hosts "*"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --timeout=2 -O /dev/null http://127.0.0.1:8080/health", "||", "exit 1"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - monitor-net
 
-  # trainer:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/api/Dockerfile
-  #   command: python retrain.py
-  #   environment:
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #     - POSTGRES_DB_USER=${POSTGRES_DB_USER}
-  #     - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
-  #     - POSTGRES_PORT=${POSTGRES_PORT}
-  #     - POSTGRES_HOST=${POSTGRES_HOST}   
-  #     - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-  #   depends_on:
-  #     - mlflow
-  #   deploy:
-  #     replicas: 1   
-  #   networks:
-  #     - monitor-net
+  trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile.trainer
+    command: python retrain.py
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB_USER=${POSTGRES_DB_USER}
+      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}   
+      - MLFLOW_TRACKING_URI=http://mlflow:8080
+    depends_on:
+      mlflow:
+        condition: service_started
+    deploy:
+      replicas: 1   
+    networks:
+      - monitor-net
+
+# MLFLOW METRICS EXPORTER
+  mlflow_exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile.exporter
+    container_name: mlflow_exporter
+    restart: unless-stopped
+    # Exposes port 9100 for Prometheus scraping
+    ports:
+      - "9100:9100" 
+    env_file:
+      - .env
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:8080
+      - EXPORTER_PORT=9100
+    depends_on:
+      mlflow:
+        condition: service_started 
+    networks:
+      - monitor-net
 
 # PROMETHEUS SERVER
   prometheus:
@@ -78,10 +109,10 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-    # DEPENDS ON 'api' to ensure target is up
     depends_on:
       - api 
       - mlflow
+      - mlflow_exporter
     networks:
       - monitor-net
 
