@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from src.api.utils.database import get_db_connection, save_customer_data, save_batch_customer_data, generate_batch_id
+from src.api.utils.customer_data import CustomerData, BatchCustomerData
 from fastapi.responses import PlainTextResponse
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field, validator
@@ -20,112 +21,6 @@ logging.basicConfig(
     level=logging.INFO)
 
 # --- Pydantic Models ---
-
-# Comprehensive Cell2Cell Customer Data Model
-
-
-class Cell2CellCustomerData(BaseModel):
-    """Complete Cell2Cell customer data model with all features"""
-
-    # Basic identifiers
-    customer_id: str = Field(...,
-                             description="Unique identifier for the customer")
-
-    # Customer Info
-    months: Optional[int] = None
-    phones: Optional[int] = None
-
-    # Usage & Call Behavior
-    mou: Optional[float] = None
-    outcalls: Optional[float] = None
-    incalls: Optional[float] = None
-    peakvce: Optional[float] = None
-    opeakvce: Optional[float] = None
-    dropvce: Optional[float] = None
-    blckvce: Optional[float] = None
-    unansvce: Optional[float] = None
-    threeway: Optional[float] = None
-    callwait: Optional[float] = None
-    callfwdv: Optional[float] = None
-    dropblk: Optional[float] = None
-    custcare: Optional[float] = None
-    mourec: Optional[float] = None
-
-    # Billing & Revenue
-    recchrge: Optional[float] = None
-    directas: Optional[float] = None
-    overage: Optional[float] = None
-    roam: Optional[float] = None
-    changem: Optional[float] = None
-    changer: Optional[float] = None
-    revenue: Optional[float] = None
-
-    # Device & Plan
-    eqpdays: Optional[int] = None
-    models: Optional[int] = None
-    actvsubs: Optional[int] = None
-    uniqsubs: Optional[int] = None
-    refurb: Optional[int] = None
-    webcap: Optional[int] = None
-
-    # Demographics
-    age1: Optional[int] = None
-    age2: Optional[int] = None
-    children: Optional[int] = None
-    income: Optional[int] = None
-    truck: Optional[int] = None
-    rv: Optional[int] = None
-    mcycle: Optional[int] = None
-
-    # Credit & Retention
-    credita: Optional[int] = None
-    creditaa: Optional[int] = None
-    creditcd: Optional[int] = None
-    retcalls: Optional[int] = None
-    retaccpt: Optional[int] = None
-
-    # Marketing & Behavior
-    mailord: Optional[int] = None
-    mailres: Optional[int] = None
-    travel: Optional[int] = None
-    pcown: Optional[int] = None
-
-    # Categorical Data
-    prizm_cluster: Optional[str] = None
-    occupation: Optional[str] = None
-    marital_status: Optional[str] = None
-    ownrent: Optional[int] = None
-
-    # New Cell & Referral
-    newcelly: Optional[int] = None
-    newcelln: Optional[int] = None
-    refer: Optional[int] = None
-
-    # Pricing & Retention
-    setprcm: Optional[int] = None
-    setprc: Optional[float] = None
-    retcall: Optional[int] = None
-
-    # Target variable
-    churn: Optional[int] = None
-
-    # Metadata
-    source: Optional[str] = "api"
-    timestamp: Optional[str] = None
-    batch_id: Optional[str] = None
-
-    # Ensures customer_id is always a string and not None
-    @validator('customer_id')
-    def customer_id_must_be_non_empty(cls, v):
-        if not v:
-            raise ValueError('Customer ID must not be empty')
-        return str(v)
-
-
-class BatchCell2CellData(BaseModel):
-    """Batch data model for multiple Cell2Cell records"""
-    customers: List[Cell2CellCustomerData]
-
 
 class IngestResponse(BaseModel):
     """Response model for data ingestion"""
@@ -270,10 +165,10 @@ def clean_categorical_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def process_ingestion_data(df: pd.DataFrame, source: str) -> List[Cell2CellCustomerData]:
+def process_ingestion_data(df: pd.DataFrame, source: str) -> List[CustomerData]:
     """
     Applies the full data cleaning pipeline to a DataFrame and converts it 
-    into a list of validated Cell2CellCustomerData objects.
+    into a list of validated CustomerData objects.
     """
     logger.info("Starting DataFrame preprocessing pipeline.")
 
@@ -301,7 +196,7 @@ def process_ingestion_data(df: pd.DataFrame, source: str) -> List[Cell2CellCusto
             row_dict['timestamp'] = current_time
 
             # Create and validate customer object using Pydantic
-            customer = Cell2CellCustomerData(**row_dict)
+            customer = CustomerData(**row_dict)
             customers.append(customer)
 
         except Exception as e:
@@ -347,7 +242,7 @@ def log_ingestion(batch_id: str, source: str, processed: int, saved: int,
 
 
 @router.post("/single", response_model=IngestResponse)
-async def ingest_single_record(data: Cell2CellCustomerData):
+async def ingest_single_record(data: CustomerData):
     """Ingest a single customer record via POST request."""
     batch_id = generate_batch_id()
 
@@ -384,7 +279,7 @@ async def ingest_single_record(data: Cell2CellCustomerData):
 
 
 @router.post("/batch", response_model=IngestResponse)
-async def ingest_batch_records(data: BatchCell2CellData):
+async def ingest_batch_records(data: BatchCustomerData):
     """Ingest multiple customer records via POST request."""
     batch_id = generate_batch_id()
 
