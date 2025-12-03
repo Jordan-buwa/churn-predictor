@@ -1,0 +1,452 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "datasource",
+                    "uid": "prometheus"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 3,
+                "x": 0,
+                "y": 0
+            },
+            "id": 2,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "textMode": "value",
+                "unit": "req/s"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "pluginEdition": "community",
+            "targets": [
+                {
+                    "expr": "sum(rate(fastapi_requests_total{endpoint=\"/predict\"}[$__interval]))",
+                    "legendFormat": "Total Prediction Rate",
+                    "refId": "A"
+                }
+            ],
+            "title": "Prediction Request Rate",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 3,
+                "x": 3,
+                "y": 0
+            },
+            "id": 4,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "textMode": "value",
+                "unit": "req/s"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.5
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "pluginEdition": "community",
+            "targets": [
+                {
+                    "expr": "sum(rate(fastapi_request_error[5m]))",
+                    "legendFormat": "Total API Errors",
+                    "refId": "A"
+                }
+            ],
+            "title": "API Error Rate",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 3,
+                "x": 6,
+                "y": 0
+            },
+            "id": 6,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "textMode": "value",
+                "unit": "short"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "pluginEdition": "community",
+            "targets": [
+                {
+                    "expr": "fastapi_loaded_models_count",
+                    "legendFormat": "Models Loaded",
+                    "refId": "A"
+                }
+            ],
+            "title": "Loaded Models (In-Memory)",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 15,
+                "x": 0,
+                "y": 3
+            },
+            "id": 16,
+            "options": {
+                "orientation": "auto",
+                "reducers": [
+                    "lastNotNull"
+                ],
+                "showLabels": true,
+                "showTime": false,
+                "fields": {
+                    "experiment_name": {
+                        "displayName": "Experiment"
+                    },
+                    "run_id": {
+                        "displayName": "Run ID"
+                    },
+                    "metric_name": {
+                        "displayName": "Metric"
+                    },
+                    "Value": {
+                        "decimals": 4,
+                        "unit": "percentunit"
+                    }
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "dark-red",
+                                "value": null
+                            },
+                            {
+                                "color": "super-light-yellow",
+                                "value": 0.75
+                            },
+                            {
+                                "color": "dark-green",
+                                "value": 0.85
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "expr": "max by (experiment_name, run_id, metric_name) (mlflow_run_metric_value{metric_name=~\"(f1_score|accuracy|roc_auc)\"})",
+                    "legendFormat": "Latest ${metric_name}",
+                    "refId": "A"
+                }
+            ],
+            "title": "Latest Model Performance Metrics (F1, AUC, Accuracy)",
+            "type": "table"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 6
+            },
+            "id": 14,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean",
+                        "max",
+                        "min",
+                        "current"
+                    ],
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColor": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillBorderColor": "rgba(0,0,0,0.2)",
+                        "fillGradient": 0,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "lineStyle": "solid",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 4,
+                    "mappings": [],
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "expr": "rate(fastapi_request_latency_seconds_sum{endpoint=\"/predict\"}[$__interval]) / rate(fastapi_request_latency_seconds_count{endpoint=\"/predict\"}[$__interval])",
+                    "legendFormat": "Average Latency (/predict)",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(fastapi_request_latency_seconds_bucket{endpoint=\"/predict\"}[$__interval])) by (le))",
+                    "legendFormat": "P95 Latency (/predict)",
+                    "refId": "B"
+                }
+            ],
+            "title": "API Request Latency (Prediction Endpoint)",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 6
+            },
+            "id": 18,
+            "options": {
+                "footer": {
+                    "show": false,
+                    "reducer": 0,
+                    "fields": ""
+                },
+                "showHeader": true,
+                "showToolbar": false
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "align": "auto",
+                        "displayMode": "auto"
+                    },
+                    "mappings": [
+                        {
+                            "options": {
+                                "3": {
+                                    "color": "green",
+                                    "text": "FINISHED (3)"
+                                },
+                                "4": {
+                                    "color": "red",
+                                    "text": "FAILED (4)"
+                                },
+                                "1": {
+                                    "color": "blue",
+                                    "text": "RUNNING (1)"
+                                },
+                                "2": {
+                                    "color": "yellow",
+                                    "text": "SCHEDULED (2)"
+                                },
+                                "5": {
+                                    "color": "purple",
+                                    "text": "KILLED (5)"
+                                }
+                            },
+                            "type": "value"
+                        }
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 3
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byNames",
+                            "options": "status_name"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.displayMode",
+                                "value": "lcd-display"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "expr": "mlflow_run_status",
+                    "legendFormat": "Latest Run Status",
+                    "refId": "A"
+                }
+            ],
+            "title": "ML Model Retraining Status",
+            "type": "table"
+        }
+    ],
+    "schemaVersion": 37,
+    "style": "dark",
+    "tags": [
+        "mlops",
+        "mlflow",
+        "fastapi"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "MLOps Churn Prediction Dashboard",
+    "uid": "churn_mlops_dashboard",
+    "version": 1
+}
