@@ -1,7 +1,7 @@
 {
   "model_type": "neural_net",
-  "latest_version": "neural_net_churn_v20251203_164717",
-  "latest_path": "/Users/ronkecrown/Documents/AMMI/churn-predictor/models/neural_net/versions/neural_net_churn_v20251203_164717.pth",
+  "latest_version": "neural_net_churn_v20251203_180743",
+  "latest_path": "/app/models/neural_net/versions/neural_net_churn_v20251203_180743.pth",
   "versions": [
     {
       "version": "neural_net_churn_v20251110_143533",
@@ -212,6 +212,27 @@
         "final_threshold": 0.42
       },
       "schema_path": "/Users/ronkecrown/Documents/AMMI/churn-predictor/models/neural_net/schemas/neural_net_churn_v20251203_164717_schema.json"
+    },
+    {
+      "version": "neural_net_churn_v20251203_180743",
+      "path": "/app/models/neural_net/versions/neural_net_churn_v20251203_180743.pth",
+      "created_at": "2025-12-03T18:07:43.976295",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.6177651568202943,
+          "F1": 0.4612246697614205,
+          "Recall": 0.645057451208182,
+          "Precision": 0.3596152371481658,
+          "Accuracy": 0.5631480260823281
+        },
+        "global_f1": 0.4719295925713698,
+        "final_accuracy": 0.5000211127844948,
+        "final_f1": 0.47443333136059657,
+        "final_roc_auc": 0.6231728631596454,
+        "final_threshold": 0.47000000000000003
+      },
+      "schema_path": "/app/models/neural_net/schemas/neural_net_churn_v20251203_180743_schema.json"
     }
   ]
 }

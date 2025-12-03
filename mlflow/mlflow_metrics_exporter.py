@@ -5,20 +5,18 @@ from mlflow.tracking import MlflowClient
 from datetime import datetime
 import numpy as np
 
-#  Configuration
+# Configuration
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:8080")
 EXPORTER_PORT = int(os.getenv("EXPORTER_PORT", 9100))
 SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", 15))
 
 # Prometheus Metrics
-# Gauge for the latest primary metric of a specific run (e.g., AUC, F1)
 MLFLOW_RUN_METRIC = Gauge(
     'mlflow_run_metric_value',
     'Latest value of a tracked MLflow metric for a run.',
     ['experiment_name', 'run_id', 'metric_name']
 )
 
-# Gauge for a run's status (1=RUNNING, 2=SCHEDULED, 3=FINISHED, 4=FAILED, 5=KILLED)
 MLFLOW_RUN_STATUS = Gauge(
     'mlflow_run_status',
     'Status of an MLflow run (1=Active, 3=Finished, 4=Failed, etc.).',
@@ -28,6 +26,7 @@ MLFLOW_RUN_STATUS = Gauge(
 
 def get_mlflow_client():
     """Initializes and returns the MLflowClient."""
+    # The client automatically picks up the environment variable MLFLOW_TRACKING_URI
     client = MlflowClient(tracking_uri=MLFLOW_TRACKING_URI)
     return client
 
@@ -36,17 +35,13 @@ def scrape_metrics():
     """Fetches MLflow run metrics and updates Prometheus gauges."""
     client = get_mlflow_client()
     try:
-
+        # Search all experiments
         experiments = client.search_experiments()
-        experiment_names = [exp.name for exp in experiments]
+        experiment_ids = [exp.experiment_id for exp in experiments]
 
-        quoted_names = [f"'{name}'" for name in experiment_names]
-        filter_string = f"tags.mlflow.experimentName IN ({', '.join(quoted_names)})"
-
-        # Use filter_string and experiment_ids argument
+        # Search runs across all experiments using only the IDs (The fix)
         runs = client.search_runs(
-            experiment_ids=[exp.experiment_id for exp in experiments],
-            filter_string=filter_string,
+            experiment_ids=experiment_ids,
             order_by=["start_time DESC"],
             max_results=100  # Limit results to avoid excessive load
         )
@@ -57,6 +52,7 @@ def scrape_metrics():
 
         for run in runs:
             try:
+                # Fetch experiment name from ID
                 exp_name = client.get_experiment(run.info.experiment_id).name
             except Exception:
                 exp_name = f"Unknown_Experiment_{run.info.experiment_id}"
@@ -72,23 +68,22 @@ def scrape_metrics():
                 exp_name, run_id, status_name).set(status_value)
 
             # Update Metric Gauges
-            for metric_key, metric_value in run.data.metrics.items():
-                # Get the latest value for the metric
-                latest_metric = client.get_metric_history(run_id, metric_key)
-                if latest_metric:
-                    latest_value = latest_metric[-1].value
+            for metric_key in run.data.metrics.keys():
+                # Get the latest value for the metric history
+                latest_metric_history = client.get_metric_history(
+                    run_id, metric_key)
+                if latest_metric_history:
+                    # The latest entry is the last in the list
+                    latest_value = latest_metric_history[-1].value
+
                     MLFLOW_RUN_METRIC.labels(
                         exp_name, run_id, metric_key).set(latest_value)
 
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Successfully scraped {len(runs)} MLflow runs.")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Successfully scraped {len(runs)} MLflow runs and updated Prometheus metrics.")
 
     except Exception as e:
-        # We need a robust check for client compatibility before proceeding
-        if "unexpected keyword argument 'experiment_names'" in str(e):
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] FATAL ERROR: MLflow Client version mismatch (used deprecated filter). Ensure the fix has been saved and container restarted.")
-        else:
-            print(
-                f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error during MLflow scraping: {e}")
+        print(
+            f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CRITICAL Error during MLflow scraping: {e}")
 
 
 def main():
