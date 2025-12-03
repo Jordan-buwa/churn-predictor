@@ -1,7 +1,6 @@
 from src.models.tuning.optuna_nn import run_optuna_optimization
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 from src.data_pipeline.pipeline_data import fetch_preprocessed
-from src.utils.mlflow_config import setup_mlflow, mlflow_config
 from src.models.utils.util_nn import create_fold_dataloaders
 from src.models.utils.eval_nn import evaluate_model
 from src.models.utils.train_util import train_model
@@ -20,6 +19,7 @@ import numpy as np
 import pandas as pd
 import subprocess
 import warnings
+import mlflow
 import os
 import sys
 import logging
@@ -70,9 +70,7 @@ class NeuralNetworkTrainer():
                                    shuffle=True,
                                    random_state=self.random_state)
         self.criterion = torch.nn.BCELoss()
-        setup_mlflow()
-        self.experiment_name = mlflow_config.get_experiment_name(
-            "NeuralNet_Churn_Experiment")
+        self.experiment_name = "NeuralNet_Churn_Experiment"
 
     def create_fold_dataloaders(self):
         return create_fold_dataloaders(self.X, self.y, self.num_splits_cv, self.batch_size, self.random_state)
@@ -132,8 +130,12 @@ class NeuralNetworkTrainer():
         mlflow.set_tracking_uri(mlflow_uri)
         mlflow.set_experiment(self.experiment_name)
         self.logger.info(f"MLflow tracking URI: {mlflow_uri}")
+        try:
+            mlflow.create_experiment(self.experiment_name)
+        except Exception:
+            pass  # Experiment already exists
         # Use nested run to avoid conflicts with parent MLflow run
-        with mlflow.start_run(nested=True):
+        with mlflow.start_run(run_name=f"nn_run_{timestamp}", nested=True):
             script_name = os.path.basename(
                 __file__) if "__file__" in globals() else "notebook"
             mlflow.set_tag("script_version", script_name)
@@ -201,7 +203,7 @@ class NeuralNetworkTrainer():
                 #  MLflow Model Logging
                 fold_input_example = X_test.head(5)
                 mlflow.pytorch.log_model(
-                    self.model, name=f"nn_model_fold_{fold}", input_example=fold_input_example)
+                    self.model, artifact_path=f"nn_model_fold_{fold}", input_example=fold_input_example)
 
                 fold_metrics.append({
                     "fold": fold,
@@ -262,13 +264,6 @@ class NeuralNetworkTrainer():
                     "final_roc_auc": float(roc),
                     "final_threshold": float(best_threshold)
                 }
-        # if mlflow_config.is_azure_ml:
-        #     mlflow.pytorch.log_model(
-        #         self.model,
-        #         "model",
-        #         registered_model_name="churn-neuralnet-model"
-        #     )
-        # else:
         mlflow.pytorch.log_model(self.model, "model")
         return self
 
