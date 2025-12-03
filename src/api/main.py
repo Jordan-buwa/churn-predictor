@@ -73,9 +73,8 @@ try:
     )
 except ValueError:
     pass
+
 # Function to update the model count for the Gauge
-
-
 def update_model_count():
     """Updates the Prometheus gauge with the current number of loaded models."""
     info = get_all_models_info()
@@ -143,28 +142,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"Model loading error: {e}")
         logger.warning("API will start – some endpoints may be unavailable")
 
-    # Yield control to FastAPI
-    yield
-
-    logger.info("Shutting down API server...")
-    try:
-        clear_models()
-        logger.info("Cleared models from memory")
-    except Exception as e:
-        logger.error(f"Shutdown error: {e}")
-
- # Update Prometheus Gauge on startup
-        update_model_count()
-
-        for mt, info in get_all_models_info().items():
-            if info['loaded']:
-                logger.info(f"  - {mt}: {info['metadata'].get('path')}")
-            else:
-                logger.warning(f"  - {mt}: NOT loaded")
-    except Exception as e:
-        logger.error(f"Model loading error: {e}")
-        logger.warning("API will start – some endpoints may be unavailable")
-
     yield
 
     logger.info("Shutting down API server...")
@@ -182,7 +159,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Mount Prometheus Metrics
+# Mount Prometheus Metrics (default endpoint for scraping)
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
@@ -200,149 +177,70 @@ app.add_middleware(
 )
 
 # Add Prometheus Middleware for Request Tracking
-
-
 @app.middleware("http")
 async def prometheus_middleware(request: Request, call_next):
     """Middleware to record request count and latency for /predict and /train."""
     path = request.url.path
     method = request.method
 
-    # Only record metrics for the endpoints we care about monitoring
+    # Only recording metrics for the endpoints we care about monitoring
     if path.startswith("/predict") or path.startswith("/train"):
 
-        # Start timer and record when the 'with' block exits
         with REQUEST_LATENCY.labels(endpoint=path).time():
-            # Increment the counter
             REQUEST_COUNT.labels(endpoint=path).inc()
-
             response = await call_next(request)
         return response
 
     response = None
     try:
-        # Call the next middleware/endpoint handler
         response = await call_next(request)
-
-        # Check for application-generated errors (Status >= 400)
         status_code = response.status_code
-
         if status_code >= 400:
-            # Log the specific application error code (e.g., 404, 403, 503)
             ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
-
         return response
 
     except Exception as e:
-        # For unhandled exceptions, we default to the standard 500 Internal Server Error
         status_code = 500
-
-        # Log the 500 error code
         ERROR_COUNT.labels(endpoint=path, error_code=status_code).inc()
-
-        # Must generate a 500 response to return to the client if none was created
         if response is None:
             response = Response("Internal Server Error", status_code=500)
         return response
 
-    response = await call_next(request)
-    return response
-
-
-async def add_user_to_request(request: Request, call_next):
-    """Add user information to request state if authenticated."""
-    try:
-        # Skip authentication for public routes
-
-        public_routes = ["/", "/pages/register", "/auth/login",
-                         "/auth/register", "/health", "/metrics"]
-        if request.url.path in public_routes or request.url.path.startswith("/static"):
-            response = await call_next(request)
-            return response
-
-        # Get authorization header
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            # Create a mock dependency context
-            from fastapi.security import HTTPAuthorizationCredentials
-
-            credentials = HTTPAuthorizationCredentials(
-                scheme="Bearer", credentials=auth_header[7:])
-
-            # Get database session
-            from src.api.db import get_db
-            db = next(get_db())
-
-            credentials = HTTPAuthorizationCredentials(
-                scheme="Bearer", credentials=auth_header[7:])
-
-            # Get database session
-            from src.api.db import get_db
-            db = next(get_db())
-            try:
-                # Get current user
-                user = await get_current_user(credentials, db)
-                request.state.user = user
-            except HTTPException:
-                request.state.user = None
-        else:
-            request.state.user = None
-    except Exception:
-        request.state.user = None
-
-    response = await call_next(request)
-    return response
 
 # templates
-
 templates = Jinja2Templates(directory="src/api/templates")
-
 app.state.allowed_models = get_allowed_model_types()
 app.state.environment = os.getenv("ENVIRONMENT", "development")
-
-
 app.add_exception_handler(Exception, api_exception_handler)
 
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global exception handler caught: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "error": str(exc)}
-    )
-
-# INCLUDE ROUTERS FIRST (before app routes) so they take priority
+# INCLUDE ROUTERS
 if os.getenv("ENVIRONMENT", "development") != "test":
-    from src.api.routers import predict, train, validate, metrics, ingest, auth
+    from src.api.routers import predict, train, validate, metrics, ingest, auth, prometheus_metrics
     app.include_router(predict.router, tags=["predictions"])
     app.include_router(train.router,   tags=["training"])
     app.include_router(validate.router, tags=["Data Validation"])
     app.include_router(metrics.router, tags=["metrics"])
     app.include_router(ingest.router,  tags=["Data ingestion"])
     app.include_router(auth.router, tags=["auth"])
+    app.include_router(prometheus_metrics.router, tags=["prometheus_metrics"])
 else:
     from src.api.routers import predict, train
     app.include_router(predict.router, tags=["predictions"])
     app.include_router(train.router,   tags=["training"])
     logger.info("Test environment detected: including predict and train routers")
 
-
+# Existing UI and health endpoints remain unchanged 
 @app.get("/pages/register", response_class=HTMLResponse)
 async def get_register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
-
 
 @app.get("/", response_class=HTMLResponse)
 async def get_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-
 @app.get("/home", response_class=HTMLResponse)
 async def ui_root(request: Request):
-    """Home page – uses index.html"""
     return templates.TemplateResponse("index.html", {"request": request})
-
 
 @app.get("/ingest", response_class=HTMLResponse)
 async def ui_ingest(request: Request):
@@ -400,6 +298,7 @@ async def health_check():
 @app.get("/models")
 async def get_models_status():
     return {"models": get_all_models_info()}
+
 
 if __name__ == "__main__":
     import uvicorn

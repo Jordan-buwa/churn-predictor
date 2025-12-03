@@ -1,24 +1,32 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor, execute_values
-from psycopg2.pool import ThreadedConnectionPool
-from contextlib import contextmanager
-from datetime import datetime
-from typing import List
-from src.api.utils.customer_data import CustomerData
-import json
 import os
+import json
 import logging
+from datetime import datetime
+from contextlib import contextmanager
+from typing import List
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import execute_values
+from psycopg2.pool import ThreadedConnectionPool
+from src.api.utils.customer_data import CustomerData
+
+# Load environment variables 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
 env_path = os.path.join(project_root, '.env')
 load_dotenv(env_path)
 
+# Logging setup with auto folder creation 
+logs_dir = os.path.join(project_root, "src/api/utils/logs")
+os.makedirs(logs_dir, exist_ok=True)
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename='src/api/utils/logs/database.log',
+    filename=os.path.join(logs_dir, 'database.log'),
     format='%(asctime)s - %(levelname)s - %(message)s',
-    level=logging.INFO)
-# PostgreSQL Configuration
+    level=logging.INFO
+)
+
+# PostgreSQL configuration
 DB_CONFIG = {
     'host': os.getenv('POSTGRES_HOST', 'localhost'),
     'port': os.getenv('POSTGRES_PORT', '5432'),
@@ -28,36 +36,36 @@ DB_CONFIG = {
     'sslmode': 'require'
 }
 
-# Connection pool (min 2 connections, max 10)
+# Connection pool 
 connection_pool = None
 
 def initialize_connection_pool():
     """Initialize PostgreSQL connection pool"""
     global connection_pool
     try:
-        connection_pool = ThreadedConnectionPool(
-            minconn=2,
-            maxconn=10,
-            **DB_CONFIG
-        )
+        connection_pool = ThreadedConnectionPool(minconn=2, maxconn=10, **DB_CONFIG)
         logger.info("PostgreSQL connection pool created successfully")
         return True
     except Exception as e:
         logger.error(f"Error creating connection pool: {str(e)}")
         return False
 
-if os.getenv("ENVIRONMENT", "development") != "test":
-    if not initialize_connection_pool():
-        raise RuntimeError(
-            "Database connection pool failed to initialize. "
-        )
-else:
-    # In test mode, defer pool initialization and avoid hard failure on import
-    logger.info("Skipping PostgreSQL pool initialization in test environment")
-
 @contextmanager
 def get_db_connection():
     """Context manager for database connections from pool"""
+    if connection_pool is None:
+        # Fallback dummy connection if pool not initialized
+        class DummyConn:
+            def cursor(self):
+                class DummyCursor:
+                    def execute(self, *args, **kwargs): pass
+                    def close(self): pass
+                return DummyCursor()
+            def commit(self): pass
+            def rollback(self): pass
+        yield DummyConn()
+        return
+
     conn = connection_pool.getconn()
     try:
         yield conn
@@ -68,28 +76,22 @@ def get_db_connection():
     finally:
         connection_pool.putconn(conn)
 
-# Database initialization function
 def initialize_database():
-    """Initialize the database schema with your features"""
+    """Initialize the database schema"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        
-        # Main customer data table
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS customer_data (
-                 features JSONB,      
+                features JSONB,
                 id SERIAL PRIMARY KEY,
                 customer_id VARCHAR(255),
-                       
-                -- Columns to drop in preprocessing       
                 unnamed_0 INTEGER,
-                x INTEGER,                     
-                customer VARCHAR(255), 
-                traintest VARCHAR(10),    
-                churndep VARCHAR(10),          
-                
-                -- Numerical Features
+                x INTEGER,
+                customer VARCHAR(255),
+                traintest VARCHAR(10),
+                churndep VARCHAR(10),
                 revenue DECIMAL(10, 2),
                 mou DECIMAL(10, 2),
                 recchrge DECIMAL(10, 2),
@@ -122,8 +124,6 @@ def initialize_database():
                 refer DECIMAL(10, 2),
                 income DECIMAL(10, 2),
                 setprc DECIMAL(10, 2),
-                
-                -- Categorical Features (stored as VARCHAR)
                 children VARCHAR(10),
                 credita VARCHAR(10),
                 creditaa VARCHAR(10),
@@ -158,21 +158,15 @@ def initialize_database():
                 retcall VARCHAR(10),
                 retcalls VARCHAR(10),
                 retaccpt VARCHAR(10),
-                
-                -- Target Variable
                 churn BOOLEAN,
-                
-                -- Metadata
                 source VARCHAR(100),
                 timestamp TIMESTAMP,
                 batch_id VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
                 CONSTRAINT unique_customer_timestamp UNIQUE(customer_id, timestamp)
             )
         """)
         
-        # Ingestion logs table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS ingestion_logs (
                 id SERIAL PRIMARY KEY,
@@ -187,8 +181,8 @@ def initialize_database():
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
-        # Create indexes for commonly queried fields
+
+        # Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_customer_id ON customer_data(customer_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON customer_data(timestamp)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_batch_id ON customer_data(batch_id)")
@@ -196,163 +190,97 @@ def initialize_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_churn ON customer_data(churn)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_revenue ON customer_data(revenue)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_months ON customer_data(months)")
-        
+
         conn.commit()
         cursor.close()
         conn.close()
-        
-        logger.info("PostgreSQL database initialized successfully with custom schema")
+
+        logger.info("PostgreSQL database initialized successfully")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
         return False
 
-# Initialize connection pool and database
 def startup():
-    """Startup function to initialize database"""
+    """Startup function to initialize pool and database"""
     if initialize_connection_pool():
         initialize_database()
     else:
         logger.error("Failed to initialize connection pool")
 
-# Call startup
 startup()
 
+# Batch helpers
 def generate_batch_id() -> str:
-    """Generate unique batch ID"""
     return f"BATCH_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{id(object())}"
 
-def save_customer_data(data: CustomerData, batch_id: str) -> bool:
-    """Save a single customer record to database"""
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Generate customer_id if not provided
-            if not data.customer_id:
-                data.customer_id = f"CUST_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{id(data)}"
+def customer_to_tuple(customer: CustomerData, batch_id: str):
+    customer.customer_id = customer.customer_id or f"CUST_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{id(customer)}"
+    features_dict = customer.dict(exclude={'customer_id', 'source', 'timestamp', 'batch_id'})
+    features_json = json.dumps(features_dict)
 
-            # Convert to features JSON
-            features_dict = data.dict(exclude={'customer_id', 'source', 'timestamp', 'batch_id'})
-            features_json = json.dumps(features_dict)
-            cursor.execute("""
-                INSERT INTO customer_data (
-                    customer_id, unnamed_0, x, customer, traintest, churndep, revenue, mou, recchrge,
-                    directas, overage, roam, changem, changer, dropvce, blckvce,
-                    unansvce, custcare, threeway,mourec, outcalls, incalls, peakvce,
-                    opeakvce, dropblk, callfwdv,callwait, months, uniqsubs, actvsubs,
-                    phones, models, eqpdays, age1, age2, refer, income, setprc,
-                    children, credita, creditaa, prizmrur, prizmub, prizmtwn, refurb,
-                    webcap, truck, rv, occprof, occcler, occcrft, occstud, occhmkr,
-                    occret, occself, ownrent, marryun, marryyes, mailord, mailres,
-                    mailflag, travel, pcown, creditcd, newcelly, newcelln, incmiss,
-                    mcycle, setprcm, retcall, retcalls, retaccpt,
-                    churn, source, timestamp, batch_id, features
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                )
-                ON CONFLICT (customer_id, timestamp) DO UPDATE SET
-                    revenue = EXCLUDED.revenue,
-                    mou = EXCLUDED.mou,
-                    churn = EXCLUDED.churn,
-                    features = EXCLUDED.features
-            """, (
-                data.customer_id, data.unnamed_0, data.x, data.customer, data.traintest, data.churndep,
-                data.revenue, data.mou, data.recchrge, data.directas,
-                data.overage, data.roam, data.changem, data.changer, data.dropvce,
-                data.blckvce, data.unansvce, data.custcare, data.threeway, data.mourec,
-                data.outcalls, data.incalls, data.peakvce, data.opeakvce, data.dropblk,
-                data.callfwdv, data.callwait, data.months, data.uniqsubs, data.actvsubs,
-                data.phones, data.models, data.eqpdays, data.age1, data.age2, data.refer,
-                data.income, data.setprc,
-                data.children, data.credita, data.creditaa, data.prizmrur, data.prizmub,
-                data.prizmtwn, data.refurb, data.webcap, data.truck, data.rv, data.occprof,
-                data.occcler, data.occcrft, data.occstud, data.occhmkr, data.occret,
-                data.occself, data.ownrent, data.marryun, data.marryyes, data.mailord,
-                data.mailres, data.mailflag, data.travel, data.pcown, data.creditcd,
-                data.newcelly, data.newcelln, data.incmiss, data.mcycle, data.setprcm,
-                data.retcall, data.retcalls, data.retaccpt,
-                data.churn, data.source, data.timestamp, batch_id,
-                json.dump(features_dict)
-            ))
-            
-            cursor.close()
-        
-        return True
-    
+    attrs = [
+        customer.customer_id, customer.unnamed_0, customer.x, customer.customer,
+        customer.traintest, customer.churndep, customer.revenue, customer.mou,
+        customer.recchrge, customer.directas, customer.overage, customer.roam,
+        customer.changem, customer.changer, customer.dropvce, customer.blckvce,
+        customer.unansvce, customer.custcare, customer.threeway, customer.mourec,
+        customer.outcalls, customer.incalls, customer.peakvce, customer.opeakvce,
+        customer.dropblk, customer.callfwdv, customer.callwait, customer.months,
+        customer.uniqsubs, customer.actvsubs, customer.phones, customer.models,
+        customer.eqpdays, customer.age1, customer.age2, customer.refer, customer.income,
+        customer.setprc, customer.children, customer.credita, customer.creditaa,
+        customer.prizmrur, customer.prizmub, customer.prizmtwn, customer.refurb,
+        customer.webcap, customer.truck, customer.rv, customer.occprof, customer.occcler,
+        customer.occcrft, customer.occstud, customer.occhmkr, customer.occret,
+        customer.occself, customer.ownrent, customer.marryun, customer.marryyes,
+        customer.mailord, customer.mailres, customer.mailflag, customer.travel,
+        customer.pcown, customer.creditcd, customer.newcelly, customer.newcelln,
+        customer.incmiss, customer.mcycle, customer.setprcm, customer.retcall,
+        customer.retcalls, customer.retaccpt, customer.churn, customer.source,
+        customer.timestamp, batch_id, features_json
+    ]
+    return tuple(attrs)
+
+def save_customer_data(customer: CustomerData, batch_id: str) -> bool:
+    """Save a single customer, fallback to batch insert format"""
+    try:
+        saved, _ = save_batch_customer_data([customer], batch_id)
+        return saved == 1
     except Exception as e:
         logger.error(f"Error saving customer data: {str(e)}")
         return False
 
 def save_batch_customer_data(customers: List[CustomerData], batch_id: str) -> tuple:
-    """
-    Save multiple customer records efficiently using execute_values
-    Returns: (saved_count, failed_count)
-    """
+    """Save multiple customer records efficiently"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            
-            # Prepare data for bulk insert
-            values = []
-            for customer in customers:
-                # Generate customer_id if not provided
-                if not customer.customer_id:
-                    customer.customer_id = f"CUST_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{id(customer)}"
-                
-                values.append((
-                    customer.customer_id, customer.unnamed_0, customer.x, customer.customer, customer.traintest, customer.churndep, customer.revenue, customer.mou, customer.recchrge,
-                    customer.directas, customer.overage, customer.roam, customer.changem,
-                    customer.changer, customer.dropvce, customer.blckvce, customer.unansvce,
-                    customer.custcare, customer.threeway, customer.mourec, customer.outcalls,
-                    customer.incalls, customer.peakvce, customer.opeakvce, customer.dropblk,
-                    customer.callfwdv, customer.callwait, customer.months, customer.uniqsubs,
-                    customer.actvsubs, customer.phones, customer.models, customer.eqpdays,
-                    customer.age1, customer.age2, customer.refer, customer.income, customer.setprc,
-                    customer.children, customer.credita, customer.creditaa, customer.prizmrur,
-                    customer.prizmub, customer.prizmtwn, customer.refurb, customer.webcap,
-                    customer.truck, customer.rv, customer.occprof, customer.occcler,
-                    customer.occcrft, customer.occstud, customer.occhmkr, customer.occret,
-                    customer.occself, customer.ownrent, customer.marryun, customer.marryyes,
-                    customer.mailord, customer.mailres, customer.mailflag, customer.travel,
-                    customer.pcown, customer.creditcd, customer.newcelly, customer.newcelln,
-                    customer.incmiss, customer.mcycle, customer.setprcm, customer.retcall,
-                    customer.retcalls, customer.retaccpt,
-                    customer.churn, customer.source, customer.timestamp, batch_id
-                ))
-            
-            # Bulk insert
+            values = [customer_to_tuple(c, batch_id) for c in customers]
             execute_values(
                 cursor,
                 """
                 INSERT INTO customer_data (
-                    customer_id, unnamed_0, x, customer, traintest, churndep, revenue, mou, recchrge, directas, overage, roam,
-                    changem, changer, dropvce, blckvce, unansvce, custcare, threeway,
-                    mourec, outcalls, incalls, peakvce, opeakvce, dropblk, callfwdv,
-                    callwait, months, uniqsubs, actvsubs, phones, models, eqpdays,
-                    age1, age2, refer, income, setprc,
+                    customer_id, unnamed_0, x, customer, traintest, churndep, revenue, mou,
+                    recchrge, directas, overage, roam, changem, changer, dropvce, blckvce,
+                    unansvce, custcare, threeway, mourec, outcalls, incalls, peakvce,
+                    opeakvce, dropblk, callfwdv, callwait, months, uniqsubs, actvsubs,
+                    phones, models, eqpdays, age1, age2, refer, income, setprc,
                     children, credita, creditaa, prizmrur, prizmub, prizmtwn, refurb,
                     webcap, truck, rv, occprof, occcler, occcrft, occstud, occhmkr,
                     occret, occself, ownrent, marryun, marryyes, mailord, mailres,
                     mailflag, travel, pcown, creditcd, newcelly, newcelln, incmiss,
-                    mcycle, setprcm, retcall, retcalls, retaccpt,
-                    churn, source, timestamp, batch_id
+                    mcycle, setprcm, retcall, retcalls, retaccpt, churn, source, timestamp,
+                    batch_id, features
                 ) VALUES %s
                 ON CONFLICT (customer_id, timestamp) DO NOTHING
                 """,
                 values
             )
-            
             saved_count = cursor.rowcount
             cursor.close()
-            
             return saved_count, len(customers) - saved_count
-        
     except Exception as e:
         logger.error(f"Error saving batch customer data: {str(e)}")
         return 0, len(customers)
