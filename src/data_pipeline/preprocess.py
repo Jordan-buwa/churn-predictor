@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 import json
 import logging
+from pathlib import Path
 from datetime import datetime
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
@@ -379,7 +380,8 @@ class DataPreprocessor:
         self.logger.info("Saving processed data...")
 
         # Local save
-        local_path = "data/processed/processed_data.csv"
+        path = os.makedirs("data/processed/", exist_ok=True)
+        local_path = Path(path).joinpath("processed_data.csv").touch()
         self.df.to_csv(local_path, index=False)
         self.logger.info("Processed data saved locally.")
         self.logger.info("Saving processed data to PostgreSQL...")
