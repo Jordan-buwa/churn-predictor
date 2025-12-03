@@ -11,6 +11,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from src.api.db import engine
 from src.data_pipeline.ingest import DataIngestion
 load_dotenv()
 
@@ -392,31 +393,31 @@ class DataPreprocessor:
         """Save processed data snapshot to PostgreSQL"""
         self.logger.info("Saving processed data snapshot to PostgreSQL...")
         try:
-            DB_USER = os.getenv("POSTGRES_DB_USER", "jawpostgresdb")
-            DB_PASS = os.getenv("POSTGRES_PASSWORD")
-            DB_HOST = os.getenv(
-                "POSTGRES_HOST", "jaw-postgresdb.postgres.database.azure.com")
-            DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-            DB_NAME = os.getenv("POSTGRES_DB_NAME", "postgres")
+            # DB_USER = os.getenv("POSTGRES_DB_USER", "azureuser")
+            # DB_PASS = os.getenv("POSTGRES_PASSWORD")
+            # DB_HOST = os.getenv(
+            #     "POSTGRES_HOST", "jaws-db.postgres.database.azure.com")
+            # DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+            # DB_NAME = os.getenv("POSTGRES_DB_NAME", "postgres")
 
-            conn_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
-            engine = create_engine(conn_str)
+            # conn_str = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
+            # engine = create_engine(conn_str)
 
             snapshot_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            snapshot_table = f"customer_prod_data"
-            self.df.to_sql(snapshot_table, engine,
-                           index=False, if_exists="replace")
+            # snapshot_table = f"customer_prod_data"
+            # self.df.to_sql(snapshot_table, engine,
+            #                index=False, if_exists="replace")
 
-            metadata = pd.DataFrame([{
-                "snapshot_id": snapshot_id,
-                "timestamp": datetime.utcnow(),
-                "row_count": len(self.df),
-                "feature_count": len(self.df.columns),
-                "storage_type": "postgres",
-                "artifact_file": "data/processed/preprocessing_artifacts.json"
-            }])
-            metadata.to_sql("preprocessing_metadata", engine,
-                            index=False, if_exists="append")
+            # metadata = pd.DataFrame([{
+            #     "snapshot_id": snapshot_id,
+            #     "timestamp": datetime.utcnow(),
+            #     "row_count": len(self.df),
+            #     "feature_count": len(self.df.columns),
+            #     "storage_type": "postgres",
+            #     "artifact_file": "data/processed/preprocessing_artifacts.json"
+            # }])
+            # metadata.to_sql("preprocessing_metadata", engine,
+            #                 index=False, if_exists="append")
             self.logger.info(
                 f"Snapshot {snapshot_id} stored successfully in PostgreSQL.")
         except Exception as e:
