@@ -1,0 +1,43 @@
+{
+  "model_type": "xgboost",
+  "required_columns": [
+    "engagement_index",
+    "model_change_rate",
+    "overage_ratio",
+    "call_activity_score",
+    "call_quality_issues",
+    "cust_engagement_score",
+    "overuse_behavior",
+    "device_tenure_index",
+    "demographic_index",
+    "socio_tier",
+    "occupation_class",
+    "household_lifestyle_score",
+    "churn_change_score"
+  ],
+  "dtypes": {
+    "engagement_index": "float64",
+    "model_change_rate": "float64",
+    "overage_ratio": "float64",
+    "call_activity_score": "float64",
+    "call_quality_issues": "float64",
+    "cust_engagement_score": "float64",
+    "overuse_behavior": "float64",
+    "device_tenure_index": "float64",
+    "demographic_index": "float64",
+    "socio_tier": "float64",
+    "occupation_class": "float64",
+    "household_lifestyle_score": "float64",
+    "churn_change_score": "float64"
+  },
+  "target_column": "churn",
+  "schema_version": "1.0",
+  "timestamp": "2025-12-04T02:32:09.483294",
+  "feature_count": 13,
+  "sample_count": 71047,
+  "class_distribution": {
+    "0": 50438,
+    "1": 20609
+  },
+  "training_data_hash": "/bin/sh: 1: dvc: not found"
+}

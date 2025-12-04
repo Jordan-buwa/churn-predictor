@@ -1,7 +1,7 @@
 {
   "model_type": "neural_net",
-  "latest_version": "neural_net_churn_v20251203_193423",
-  "latest_path": "/app/models/neural_net/versions/neural_net_churn_v20251203_193423.pth",
+  "latest_version": "neural_net_churn_v20251204_025305",
+  "latest_path": "/app/models/neural_net/versions/neural_net_churn_v20251204_025305.pth",
   "versions": [
     {
       "version": "neural_net_churn_v20251110_143533",
@@ -254,6 +254,48 @@
         "final_threshold": 0.42
       },
       "schema_path": "/app/models/neural_net/schemas/neural_net_churn_v20251203_193423_schema.json"
+    },
+    {
+      "version": "neural_net_churn_v20251204_010113",
+      "path": "/app/models/neural_net/versions/neural_net_churn_v20251204_010113.pth",
+      "created_at": "2025-12-04T01:01:13.873531",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.6294734231175252,
+          "F1": 0.46140407933862565,
+          "Recall": 0.6224476448189478,
+          "Precision": 0.36663802333086515,
+          "Accuracy": 0.5785183737161167
+        },
+        "global_f1": 0.4761315367520887,
+        "final_accuracy": 0.494278435401917,
+        "final_f1": 0.4838830153987589,
+        "final_roc_auc": 0.6465811098445915,
+        "final_threshold": 0.43
+      },
+      "schema_path": "/app/models/neural_net/schemas/neural_net_churn_v20251204_010113_schema.json"
+    },
+    {
+      "version": "neural_net_churn_v20251204_025305",
+      "path": "/app/models/neural_net/versions/neural_net_churn_v20251204_025305.pth",
+      "created_at": "2025-12-04T02:53:05.083140",
+      "format": "torch_object",
+      "metrics": {
+        "cv_avg": {
+          "AUC": 0.6259997512600174,
+          "F1": 0.4588930960160217,
+          "Recall": 0.6190019851929403,
+          "Precision": 0.36486029773098405,
+          "Accuracy": 0.5766043000667278
+        },
+        "global_f1": 0.4747876819612295,
+        "final_accuracy": 0.4949399693160865,
+        "final_f1": 0.4815719136025428,
+        "final_roc_auc": 0.641254023844239,
+        "final_threshold": 0.43
+      },
+      "schema_path": "/app/models/neural_net/schemas/neural_net_churn_v20251204_025305_schema.json"
     }
   ]
 }
