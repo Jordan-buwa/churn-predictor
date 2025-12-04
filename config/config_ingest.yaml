@@ -20,10 +20,10 @@ database:
   db_config:
     dialect: "postgresql"
     driver: "psycopg2"
-    host: "jaw-postgresdb.postgres.database.azure.com"
+    host: "jaws-db.postgres.database.azure.com"
     port: 5432
     database: "postgres"
-    user: "jawpostgresdb"
+    user: "azureuser"
     password: "${POSTGRES_PASSWORD}"   # from environment variable
     sslmode: "require"
 

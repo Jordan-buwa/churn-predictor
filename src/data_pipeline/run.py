@@ -2,7 +2,8 @@
 
 import os
 import sys
-from .preprocess import DataPreprocessor  # Import the class you just shared
+import pandas as pd
+from .preprocess import DataPreprocessor, ProductionPreprocessor  # Import the class you just shared
 
 # Add the project root to the path for correct environment loading if needed
 sys.path.append(os.path.dirname(os.path.dirname(
@@ -21,6 +22,10 @@ def main():
     # It also handles saving the processed data.
     # -------------------------------------------------------------------------
 
+    # try:
+        # 1. Instantiate the Preprocessor
+        # It will load 'config/config_process.yaml' and 'data/backup/ingested.csv'
+
     try:
         # 1. Instantiate the Preprocessor
         # It will load 'config/config_process.yaml' and 'data/backup/ingested.csv'
@@ -30,7 +35,7 @@ def main():
         processed_df = preprocessor.run_preprocessing_pipeline()
 
         # Optional: Print success message or final shape
-        print(f"\n✨ Final processed data shape: {processed_df.shape}")
+        print(f"\n✨ Final training processed data shape: {processed_df.shape}")
 
     except ValueError as e:
         print(
@@ -40,4 +45,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    df = pd.read_csv("data/raw/telco_churn.csv")
+    preprocessor = ProductionPreprocessor()
+
+    # 2. Run the pipeline, which includes saving the data to CSV and Postgres
+    processed_df = preprocessor.preprocess(df)
+
+
+    # Optional: Print success message or final shape
+    print(f"\n✨ Final production processed data shape: {processed_df.shape} \n {processed_df.columns}")
+
