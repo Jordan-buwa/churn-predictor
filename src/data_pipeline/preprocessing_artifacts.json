@@ -1,51 +1,18 @@
 {
-  "potential_derived_source_cols": [
-    "outcalls",
-    "incalls",
-    "months",
-    "models",
-    "overage",
-    "revenue",
-    "mou",
-    "mourec",
-    "peakvce",
-    "opeakvce",
-    "dropvce",
-    "blckvce",
-    "unansvce",
-    "dropblk",
-    "custcare",
-    "retcalls",
-    "retaccpt",
-    "directas",
-    "recchrge",
-    "eqpdays",
-    "refurb",
-    "age1",
-    "age2",
-    "children",
-    "income",
-    "credita",
-    "creditaa",
-    "prizmub",
-    "prizmtwn",
-    "occprof",
-    "occcler",
-    "occcrft",
-    "occret",
-    "occself",
-    "ownrent",
-    "marryyes",
-    "pcown",
-    "creditcd",
-    "travel",
-    "truck",
-    "rv",
-    "changem",
-    "changer",
-    "newcelly",
-    "newcelln",
-    "refer"
+  "derived_features": [
+    "engagement_index",
+    "model_change_rate",
+    "overage_ratio",
+    "call_activity_score",
+    "call_quality_issues",
+    "cust_engagement_score",
+    "overuse_behavior",
+    "device_tenure_index",
+    "demographic_index",
+    "socio_tier",
+    "occupation_class",
+    "household_lifestyle_score",
+    "churn_change_score"
   ],
   "feature_names": [
     "churn",
@@ -57,28 +24,83 @@
     "cust_engagement_score",
     "overuse_behavior",
     "device_tenure_index",
-    "demographic_index"
+    "demographic_index",
+    "socio_tier",
+    "occupation_class",
+    "household_lifestyle_score",
+    "churn_change_score"
   ],
-  "numerical_features": [
-    "call_activity_score",
-    "device_tenure_index",
-    "model_change_rate",
-    "cust_engagement_score",
-    "engagement_index",
-    "call_quality_issues",
-    "overage_ratio",
-    "overuse_behavior",
-    "demographic_index"
+  "original_numerical_features": [
+    "revenue",
+    "mou",
+    "recchrge",
+    "directas",
+    "overage",
+    "roam",
+    "changem",
+    "changer",
+    "dropvce",
+    "blckvce",
+    "unansvce",
+    "custcare",
+    "threeway",
+    "mourec",
+    "outcalls",
+    "incalls",
+    "peakvce",
+    "opeakvce",
+    "dropblk",
+    "callfwdv",
+    "callwait",
+    "months",
+    "uniqsubs",
+    "actvsubs",
+    "phones",
+    "models",
+    "eqpdays",
+    "age1",
+    "age2",
+    "refer",
+    "income",
+    "setprc"
   ],
-  "categorical_features": [],
+  "original_categorical_features": [
+    "children",
+    "credita",
+    "creditaa",
+    "prizmrur",
+    "prizmub",
+    "prizmtwn",
+    "refurb",
+    "webcap",
+    "truck",
+    "rv",
+    "occprof",
+    "occcler",
+    "occcrft",
+    "occstud",
+    "occhmkr",
+    "occret",
+    "occself",
+    "ownrent",
+    "marryun",
+    "marryyes",
+    "mailord",
+    "mailres",
+    "mailflag",
+    "travel",
+    "pcown",
+    "creditcd",
+    "newcelly",
+    "newcelln",
+    "incmiss",
+    "mcycle",
+    "setprcm",
+    "retcall",
+    "retcalls",
+    "retaccpt"
+  ],
   "target_column": "churn",
-  "drop_columns": [
-    "Unnamed: 0",
-    "X",
-    "customer",
-    "traintest",
-    "churndep"
-  ],
   "label_encoders": {
     "children": [
       "0",
@@ -225,133 +247,49 @@
   },
   "scaler_params": {
     "mean": [
-      0.05085366025307191,
-      -1.1991998885382915,
-      46.870569788659914,
-      20.787253508241022,
-      114.93532572918203,
-      1.5617830450265318,
-      18.75082691739271,
-      1.853033910555041,
-      58.82141909804086,
-      525.242779430179,
-      1.8086055709600686,
-      31.45609244584571,
-      736.1644498782845,
-      4.72315256098076,
-      28.35590289756951,
-      380.2649232198404,
-      1.3516545385449068,
+      2.188835017209555,
       0.09029784412422251,
-      0.011837234676721044,
-      0.3001674975083818,
-      4.06783303337699,
-      10.149743597695371,
-      1.9387565056279084,
-      2.1888350172095556,
-      -10.80515128446655,
-      6.009967580986122,
-      1.8659173991209481,
-      4.334229453741889,
-      48.583447109628,
-      8.176798458335046,
-      1.5295508606978478,
-      90.58094640371283,
       0.4287861661375029,
-      39.98106183251267,
-      63.86237762824652,
-      35.79858036033992,
-      25.396526243880995,
-      1.2173588964600617,
-      0.8920618028077751,
-      26.60688408236801,
-      67.81841833191805
+      736.1644498782845,
+      48.58344710962799,
+      1.9387565056279084,
+      63.862377628246506,
+      4.723152560980759,
+      26.606884082368015,
+      0.756717384266753,
+      0.2559432488352781,
+      1.88503385083114,
+      -11.698053933149534
     ],
     "scale": [
-      0.2904416495414051,
-      38.63288034301579,
-      23.878770395208907,
-      23.868962742264582,
-      166.30455888721534,
-      0.9082701438984111,
-      9.787499584988515,
-      5.556162671661289,
-      44.17962004091062,
-      529.3970821535491,
-      1.3361048878724344,
-      21.896264007219422,
-      771.7016132144247,
-      2.3926985613464766,
-      38.90397440156769,
-      254.2911829719242,
-      0.6600446745154783,
-      0.05158134106031568,
-      0.5621829291110161,
-      1.1615521344795279,
-      10.670710452648526,
-      15.46047269947782,
-      5.1901841087555045,
       3.6503419475218437,
-      254.40939103497496,
-      9.006061205977986,
-      5.160725609102289,
-      3.1370409919799327,
-      60.36427523768671,
-      16.518942951759332,
-      1.131766075521711,
-      104.91412775527408,
+      0.05158134106031568,
       0.6274356657254672,
-      96.22211684994349,
+      771.7016132144247,
+      60.364275237686705,
+      5.1901841087555045,
       99.66764555937337,
-      57.04055931864058,
-      35.14726476805804,
-      9.067458981632315,
-      2.194638678312131,
+      2.3926985613464766,
       21.244802054814144,
-      93.32833372486792
+      0.8036963288743492,
+      0.4363900803305696,
+      1.1388652422088619,
+      279.59979790833916
     ],
     "var": [
-      0.08435635178833238,
-      1492.4994435977758,
-      570.1956755871054,
-      569.7273823916148,
-      27657.20630667127,
-      0.8249546542972405,
-      95.79514812615035,
-      30.87094363396231,
-      1951.8388269592315,
-      280261.27059269167,
-      1.7851762713966108,
-      479.44637747385275,
-      595523.3798377456,
-      5.7250064054694985,
-      1513.5192242378337,
-      64664.00573726063,
-      0.43565897235624373,
+      13.324996333837568,
       0.002660634745580608,
-      0.3160496457838417,
-      1.3492033611139473,
-      113.86406156426251,
-      239.02621609129903,
-      26.938011082778168,
-      13.324996333837566,
-      64724.138246786795,
-      81.10913844582164,
-      26.633088812444186,
-      9.84102618536244,
-      3643.845724971197,
-      272.87547624347934,
-      1.2808944497018153,
-      11006.974202649972,
       0.3936755146243602,
-      9258.695771084178,
+      595523.3798377456,
+      3643.8457249711964,
+      26.938011082778175,
       9933.639571348878,
-      3253.6254073833547,
-      1235.3302206759736,
-      82.21881238358453,
-      4.816438928343619,
+      5.725006405469499,
       451.3416143482353,
-      8710.177875860318
+      0.6459277890461059,
+      0.19043630221092098,
+      1.2970140399114496,
+      78176.0469903841
     ],
     "n_samples_seen": 71047
   },
@@ -363,7 +301,7 @@
         "months"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.882257"
+      "created_at": "2025-12-03T23:47:00.834191"
     },
     "model_change_rate": {
       "required_columns": [
@@ -371,7 +309,7 @@
         "months"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.883043"
+      "created_at": "2025-12-03T23:47:00.834872"
     },
     "overage_ratio": {
       "required_columns": [
@@ -379,7 +317,7 @@
         "revenue"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.883673"
+      "created_at": "2025-12-03T23:47:00.835814"
     },
     "call_activity_score": {
       "required_columns": [
@@ -391,7 +329,7 @@
         "opeakvce"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.884878"
+      "created_at": "2025-12-03T23:47:00.836931"
     },
     "call_quality_issues": {
       "required_columns": [
@@ -401,7 +339,7 @@
         "dropblk"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.885859"
+      "created_at": "2025-12-03T23:47:00.837614"
     },
     "cust_engagement_score": {
       "required_columns": [
@@ -410,7 +348,7 @@
         "retaccpt"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.886853"
+      "created_at": "2025-12-03T23:47:00.838349"
     },
     "overuse_behavior": {
       "required_columns": [
@@ -419,7 +357,7 @@
         "recchrge"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.887498"
+      "created_at": "2025-12-03T23:47:00.839173"
     },
     "device_tenure_index": {
       "required_columns": [
@@ -428,7 +366,7 @@
         "refurb"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.888223"
+      "created_at": "2025-12-03T23:47:00.840194"
     },
     "demographic_index": {
       "required_columns": [
@@ -438,7 +376,52 @@
         "income"
       ],
       "operation": "custom",
-      "created_at": "2025-11-11T23:36:29.889097"
+      "created_at": "2025-12-03T23:47:00.841399"
+    },
+    "socio_tier": {
+      "required_columns": [
+        "credita",
+        "creditaa",
+        "prizmub",
+        "prizmtwn"
+      ],
+      "operation": "custom",
+      "created_at": "2025-12-03T23:47:00.842319"
+    },
+    "occupation_class": {
+      "required_columns": [
+        "occprof",
+        "occcler",
+        "occcrft",
+        "occret",
+        "occself"
+      ],
+      "operation": "custom",
+      "created_at": "2025-12-03T23:47:00.843338"
+    },
+    "household_lifestyle_score": {
+      "required_columns": [
+        "ownrent",
+        "marryyes",
+        "pcown",
+        "creditcd",
+        "travel",
+        "truck",
+        "rv"
+      ],
+      "operation": "custom",
+      "created_at": "2025-12-03T23:47:00.844627"
+    },
+    "churn_change_score": {
+      "required_columns": [
+        "changem",
+        "changer",
+        "newcelly",
+        "newcelln",
+        "refer"
+      ],
+      "operation": "custom",
+      "created_at": "2025-12-03T23:47:00.846457"
     }
   },
   "numerical_fill_values": {
@@ -458,9 +441,9 @@
   },
   "categorical_fill_values": {},
   "target_mapping": {},
-  "preprocessing_timestamp": "2025-11-11T23:39:08.254517",
+  "preprocessing_timestamp": "2025-12-03T23:50:02.104609",
   "n_samples": 71047,
-  "n_features": 10,
+  "n_features": 13,
   "feature_dtypes": {
     "churn": "int64",
     "engagement_index": "float64",
@@ -471,6 +454,10 @@
     "cust_engagement_score": "float64",
     "overuse_behavior": "float64",
     "device_tenure_index": "float64",
-    "demographic_index": "float64"
+    "demographic_index": "float64",
+    "socio_tier": "float64",
+    "occupation_class": "float64",
+    "household_lifestyle_score": "float64",
+    "churn_change_score": "float64"
   }
 }

@@ -6,7 +6,6 @@ import numpy as np
 import pickle
 import json
 import logging
-from pathlib import Path
 from datetime import datetime
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
@@ -52,6 +51,8 @@ class DataPreprocessor:
         self.drop_col = self.config["must_drop_columns"]
         self.features_to_drop = self.config["features_to_drop"]
         self.derived_features_config = self.config.get("combined_features", [])
+        self.original_num_cols = self.config["numerical_features"]
+        self.original_cat_cols = self.config["categorical_features"]
 
         # For encoding and scaling
         self.label_encoders = {}
@@ -89,18 +90,17 @@ class DataPreprocessor:
                     fill_value = self.df[col].mode()[0]
                 else:
                     fill_value = "Unknown"
-                self.df[col] = self.df[col].abs(fill_value)
+                self.df[col] = self.df[col].fillna(fill_value)
                 self.categorical_fill_values[col] = fill_value
                 self.logger.info(
                     f"Filled missing values in {col} with mode: {fill_value}")
 
         # Handle missing values in potential source columns for derived features
-
         for col in self.features_to_drop:
             if col in self.df.columns and self.df[col].isnull().any():
                 if col in self.num_cols:
                     fill_value = self.df[col].median()
-                    self.df[col] = self.df[col].abs(fill_value)
+                    self.df[col] = self.df[col].fillna(fill_value)
                     if col not in self.numerical_fill_values:
                         self.numerical_fill_values[col] = float(fill_value)
                 elif col in self.cat_cols:
@@ -108,7 +108,7 @@ class DataPreprocessor:
                         fill_value = self.df[col].mode()[0]
                     else:
                         fill_value = "Unknown"
-                    self.df[col] = self.df[col].abs(fill_value)
+                    self.df[col] = self.df[col].fillna(fill_value)
                     if col not in self.categorical_fill_values:
                         self.categorical_fill_values[col] = fill_value
 
@@ -298,15 +298,17 @@ class DataPreprocessor:
         # Update numerical features list with newly created features
         self.num_cols = list(set(self.num_cols + created_features))
         self.logger.info(f"Derived features created: {created_features}")
+        return created_features
 
     def encode_categorical_variables(self):
-        """Encode categorical features"""
+        """Encode categorical features (not needed for derived features only)"""
         self.logger.info("Encoding categorical variables...")
         for col in self.cat_cols:
-            le = LabelEncoder()
-            self.df[col] = le.fit_transform(self.df[col].astype(str))
-            self.label_encoders[col] = le
-            self.logger.info(f"Encoded categorical variable: {col}")
+            if col in self.df.columns:
+                le = LabelEncoder()
+                self.df[col] = le.fit_transform(self.df[col].astype(str))
+                self.label_encoders[col] = le
+                self.logger.info(f"Encoded categorical variable: {col}")
 
     def encode_target_variable(self):
         """Encode target variable consistently"""
@@ -335,43 +337,58 @@ class DataPreprocessor:
                 self.df[self.target_col] = self.df[self.target_col].astype(int)
 
     def feature_scaling(self):
-        """Scale numerical features and store scaler"""
-        self.logger.info("Scaling numerical features...")
-        numerical_cols_to_scale = [
-            col for col in self.num_cols if col in self.df.columns]
-
-        if numerical_cols_to_scale:
-            self.df[numerical_cols_to_scale] = self.scaler.fit_transform(
-                self.df[numerical_cols_to_scale]
+        """Scale only the derived features"""
+        self.logger.info("Scaling derived features...")
+        
+        # Get derived features from config
+        derived_features = self.config.get("combined_features", [])
+        
+        # Filter to only those that exist in dataframe
+        features_to_scale = [col for col in derived_features if col in self.df.columns]
+        
+        if features_to_scale:
+            self.df[features_to_scale] = self.scaler.fit_transform(
+                self.df[features_to_scale]
             )
             self.logger.info(
-                f"Scaled numerical features: {numerical_cols_to_scale}")
+                f"Scaled derived features: {features_to_scale}")
 
     def remove_unnecessary_columns(self):
-        """Drop unnecessary raw columns, keeping derived features intact"""
+        """Drop all raw columns, keeping ONLY derived features and target"""
         self.logger.info("Dropping unnecessary columns...")
-
-        # Start with explicitly configured drop columns
-        cols_to_drop = set(self.drop_col) | set(self.features_to_drop)
-
-        # Automatically keep all derived features
+        
+        # Get the list of derived features from the config
         derived_features = set(self.config.get("combined_features", []))
-        # Only drop columns that are not in derived features or target
-        raw_cols_to_drop = set(self.df.columns) - \
-            derived_features - {self.target_col}
-        cols_to_drop.update(raw_cols_to_drop)
-
-        # Drop columns safely
-        for col in cols_to_drop:
+        
+        # Create a set of columns that should be KEPT:
+        # - All derived features
+        # - The target column
+        columns_to_keep = derived_features | {self.target_col}
+        
+        # Create a set of all current columns
+        current_columns = set(self.df.columns)
+        
+        # Find columns to drop (everything NOT in columns_to_keep)
+        columns_to_drop = current_columns - columns_to_keep
+        
+        # Drop columns
+        for col in columns_to_drop:
             if col in self.df.columns:
                 self.df.drop(columns=col, inplace=True)
                 self.logger.info(f"Removed column: {col}")
-
-        # Update numerical and categorical lists
+        
+        # Log final columns
+        final_columns = list(self.df.columns)
+        self.logger.info(f"Final columns after dropping: {final_columns}")
+        self.logger.info(f"Total columns: {len(final_columns)}")
+        
+        # Update numerical and categorical lists (derived features are all numerical)
         self.num_cols = [
-            col for col in self.num_cols if col in self.df.columns]
+            col for col in self.num_cols if col in self.df.columns
+        ]
         self.cat_cols = [
-            col for col in self.cat_cols if col in self.df.columns]
+            col for col in self.cat_cols if col in self.df.columns
+        ]
 
     # Save Processed Data
 
@@ -380,9 +397,8 @@ class DataPreprocessor:
         self.logger.info("Saving processed data...")
 
         # Local save
-        path = "data/processed/"
-        os.makedirs(path , exist_ok=True)
-        local_path = Path(path).joinpath("processed_data.csv").touch()
+        local_path = "data/processed/processed_data.csv"
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
         self.df.to_csv(local_path, index=False)
         self.logger.info("Processed data saved locally.")
         self.logger.info("Saving processed data to PostgreSQL...")
@@ -392,10 +408,10 @@ class DataPreprocessor:
         """Save processed data snapshot to PostgreSQL"""
         self.logger.info("Saving processed data snapshot to PostgreSQL...")
         try:
-            DB_USER = os.getenv("POSTGRES_DB_USER", "jawpostgresdb")
+            DB_USER = os.getenv("POSTGRES_DB_USER", "azureuser")
             DB_PASS = os.getenv("POSTGRES_PASSWORD")
             DB_HOST = os.getenv(
-                "POSTGRES_HOST", "jaw-postgresdb.postgres.database.azure.com")
+                "POSTGRES_HOST", "jaws-db.postgres.database.azure.com")
             DB_PORT = os.getenv("POSTGRES_PORT", "5432")
             DB_NAME = os.getenv("POSTGRES_DB_NAME", "postgres")
 
@@ -411,9 +427,9 @@ class DataPreprocessor:
                 "snapshot_id": snapshot_id,
                 "timestamp": datetime.utcnow(),
                 "row_count": len(self.df),
-                "feature_count": len(self.df.columns),
+                "feature_count": len(self.df.columns) - 1,  # Excluding target
                 "storage_type": "postgres",
-                "artifact_file": "data/processed/preprocessing_artifacts.json"
+                "artifact_file": "src/data_pipeline/preprocessing_artifacts.json"
             }])
             metadata.to_sql("preprocessing_metadata", engine,
                             index=False, if_exists="append")
@@ -434,13 +450,32 @@ class DataPreprocessor:
             self.handle_missing_values()
 
             # THEN create derived features using clean data
-            self.combine_cols()
+            derived_features_created = self.combine_cols()
+            
+            # Validate we created all expected derived features
+            expected_derived_features = self.config.get("combined_features", [])
+            missing_features = [feat for feat in expected_derived_features if feat not in derived_features_created]
+            if missing_features:
+                self.logger.warning(f"Failed to create some derived features: {missing_features}")
 
             # Continue with other preprocessing steps
             self.encode_categorical_variables()
             self.encode_target_variable()
             self.feature_scaling()
             self.remove_unnecessary_columns()
+
+            # Validate we have exactly 13 derived features + 1 target
+            expected_derived_count = 13
+            expected_columns_count = expected_derived_count + 1  # +1 for target
+            
+            if len(self.df.columns) != expected_columns_count:
+                self.logger.error(
+                    f"Expected {expected_columns_count} columns (13 derived + 1 target), "
+                    f"but got {len(self.df.columns)}: {list(self.df.columns)}"
+                )
+                raise ValueError(
+                    f"Incorrect number of columns. Expected {expected_columns_count}, got {len(self.df.columns)}"
+                )
 
             # Validate no NaN values remain
             if self.df.isnull().any().any():
@@ -451,9 +486,10 @@ class DataPreprocessor:
                     f"Data contains NaNs after preprocessing in: {nan_cols}")
 
             self.save_preprocessed_data()
-            _ = self.get_feature_names()
-            self.logger.info("Preprocessing pipeline completed successfully.")
-            print("Preprocessing pipeline completed successfully.")
+            features = self.get_feature_names()
+            self.logger.info(f"Preprocessing completed. Final shape: {self.df.shape}")
+            self.logger.info(f"Features: {features}")
+            print(f"Preprocessing pipeline completed successfully. Shape: {self.df.shape}")
             return self.df
 
         except Exception as e:
@@ -495,10 +531,10 @@ class ProductionPreprocessor(DataPreprocessor):
         """Initialize all attributes from saved artifacts"""
         # Load basic configuration from artifacts
         self.feature_names = self.artifacts.get("feature_names", [])
-        self.num_cols = self.artifacts.get("numerical_features", [])
-        self.cat_cols = self.artifacts.get("categorical_features", [])
+        self.num_cols = self.artifacts.get("original_numerical_features", [])
+        self.cat_cols = self.artifacts.get("original_categorical_features", [])
         self.target_col = self.artifacts.get("target_column", "churn")
-        self.drop_col = self.artifacts.get("drop_columns", [])
+        self.derived_features = self.artifacts.get("derived_features", [])
 
         # Load transformation parameters
         self.feature_engineering_params = self.artifacts.get(
@@ -561,11 +597,13 @@ class ProductionPreprocessor(DataPreprocessor):
             # Step 4: Scale numerical features (using training scaler)
             self._feature_scaling_production()
 
-            # Step 5: Align features with training schema
+            # Step 5: Align features with training schema - KEEP ONLY DERIVED FEATURES
             self.df = self._align_features(self.df)
 
             self.logger.info(
                 "Production preprocessing completed successfully.")
+            self.logger.info(f"Final shape: {self.df.shape}")
+            self.logger.info(f"Features: {list(self.df.columns)}")
             return self.df
 
         except Exception as e:
@@ -585,28 +623,27 @@ class ProductionPreprocessor(DataPreprocessor):
             if col in self.df.columns and self.df[col].isnull().any():
                 self.df[col] = self.df[col].fillna(fill_value)
         # Handle potential source columns for derived features
-        potential_derived_source_cols = self.artifacts.get(
-            "potential_derived_source_cols", [])
-
-        for col in potential_derived_source_cols:
-            if col in self.df.columns and self.df[col].isnull().any():
-                if col in self.numerical_fill_values:
-                    self.df[col].fillna(
-                        self.numerical_fill_values[col], inplace=True)
-                elif col in self.categorical_fill_values:
-                    self.df[col].fillna(
-                        self.categorical_fill_values[col], inplace=True)
-                else:
-                    # Fallback: use median for numerical, mode for categorical
-                    if self.df[col].dtype in ['int64', 'float64']:
+        for feature_name in self.feature_engineering_params.keys():
+            required_cols = self.feature_engineering_params[feature_name].get("required_columns", [])
+            for col in required_cols:
+                if col in self.df.columns and self.df[col].isnull().any():
+                    if col in self.numerical_fill_values:
                         self.df[col].fillna(
-                            self.df[col].median(), inplace=True)
+                            self.numerical_fill_values[col], inplace=True)
+                    elif col in self.categorical_fill_values:
+                        self.df[col].fillna(
+                            self.categorical_fill_values[col], inplace=True)
                     else:
-                        if not self.df[col].mode().empty:
+                        # Fallback: use median for numerical, mode for categorical
+                        if self.df[col].dtype in ['int64', 'float64']:
                             self.df[col].fillna(
-                                self.df[col].mode()[0], inplace=True)
+                                self.df[col].median(), inplace=True)
                         else:
-                            self.df[col].fillna("Unknown", inplace=True)
+                            if not self.df[col].mode().empty:
+                                self.df[col].fillna(
+                                    self.df[col].mode()[0], inplace=True)
+                            else:
+                                self.df[col].fillna("Unknown", inplace=True)
 
     def _combine_cols_production(self):
         """Create derived features AFTER missing values are handled"""
@@ -649,6 +686,7 @@ class ProductionPreprocessor(DataPreprocessor):
                         if self.df[required_cols].isnull().any().any():
                             self.logger.warning(
                                 f"Skipping {feature_name}: missing values in source columns")
+                            self.df[feature_name] = 0  # Default value
                             continue
 
                         self.df[feature_name] = operation()
@@ -692,10 +730,12 @@ class ProductionPreprocessor(DataPreprocessor):
                 self.df[col] = self.df[col].astype(int)
 
     def _feature_scaling_production(self):
-        """Scale numerical features using training scaler"""
-        self.logger.info("Scaling numerical features in production...")
-        cols_to_scale = [
-            col for col in self.num_cols if col in self.df.columns]
+        """Scale derived features using training scaler"""
+        self.logger.info("Scaling derived features in production...")
+        
+        # Scale only the derived features
+        derived_features = self.derived_features
+        cols_to_scale = [col for col in derived_features if col in self.df.columns]
 
         if cols_to_scale and hasattr(self.scaler, 'mean_') and len(self.scaler.mean_) > 0:
             try:
@@ -711,21 +751,25 @@ class ProductionPreprocessor(DataPreprocessor):
                             self.df[col] - self.scaler.mean_[idx]) / self.scaler.scale_[idx]
 
     def _align_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Ensure features match training feature order and presence"""
-        # Remove target column for inference
-        expected_features = [
-            f for f in self.feature_names if f != self.target_col]
-
-        # Add missing features with zeros
+        """Ensure only derived features are kept, matching training"""
+        # We only want the 13 derived features (no target, no raw columns)
+        expected_features = self.derived_features
+        
+        # Add missing derived features with zeros
         for feat in expected_features:
             if feat not in df.columns:
                 df[feat] = 0
                 self.logger.warning(
-                    f"Missing feature '{feat}' - filled with 0")
+                    f"Missing derived feature '{feat}' - filled with 0")
 
-        # Keep only expected features in the correct order
+        # Keep only derived features in the correct order
         df = df[expected_features]
 
+        # Validate we have exactly 13 features
+        if len(df.columns) != 13:
+            self.logger.warning(
+                f"Expected 13 derived features, got {len(df.columns)}")
+            
         return df
 
     # Override parent methods that shouldn't be used in production
@@ -749,6 +793,10 @@ class ProductionPreprocessor(DataPreprocessor):
         raise NotImplementedError(
             "Use _feature_scaling_production() for production inference")
 
+    def remove_unnecessary_columns(self):
+        raise NotImplementedError(
+            "This method is not used in production inference")
+
 
 def save_enhanced_preprocessing_artifacts(preprocessor_instance):
     """
@@ -771,15 +819,17 @@ def save_enhanced_preprocessing_artifacts(preprocessor_instance):
         else:
             return obj
 
+    # Store ONLY derived features (13) + target
+    derived_features = preprocessor_instance.config.get("combined_features", [])
+    
     # Store complete preprocessing state
     artifacts = {
-        # Feature lists and configuration
-        "potential_derived_source_cols": preprocessor_instance.features_to_drop,
+        # Feature lists - ONLY derived features
+        "derived_features": derived_features,
         "feature_names": preprocessor_instance.df.columns.tolist(),
-        "numerical_features": preprocessor_instance.num_cols,
-        "categorical_features": preprocessor_instance.cat_cols,
+        "original_numerical_features": preprocessor_instance.original_num_cols,
+        "original_categorical_features": preprocessor_instance.original_cat_cols,
         "target_column": preprocessor_instance.target_col,
-        "drop_columns": preprocessor_instance.drop_col,
 
         # Transformation objects
         "label_encoders": {
@@ -807,7 +857,7 @@ def save_enhanced_preprocessing_artifacts(preprocessor_instance):
         # Metadata
         "preprocessing_timestamp": datetime.utcnow().isoformat(),
         "n_samples": len(preprocessor_instance.df),
-        "n_features": len(preprocessor_instance.df.columns),
+        "n_features": len(derived_features),  # Only derived features count
         "feature_dtypes": {col: str(dtype) for col, dtype in preprocessor_instance.df.dtypes.items()}
     }
 
@@ -832,3 +882,13 @@ def save_enhanced_preprocessing_artifacts(preprocessor_instance):
     preprocessor_instance.logger.info(
         f"Enhanced artifacts saved to {artifacts_path}")
     return artifacts_path
+
+if __name__ == "__main__":
+    # Example usage
+    config_path = "config/config_process.yaml"
+    data_path = None
+
+    preprocessor = DataPreprocessor(config_path, data_path)
+    processed_df = preprocessor.run_preprocessing_pipeline()
+    artifacts_file = save_enhanced_preprocessing_artifacts(preprocessor)
+    print(f"Preprocessing artifacts saved to: {artifacts_file}")
