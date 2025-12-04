@@ -53,5 +53,6 @@ if __name__ == "__main__":
 
 
     # Optional: Print success message or final shape
-    print(f"\n✨ Final production processed data shape: {processed_df.shape} \n {processed_df.columns}")
+    print(f"\n✨ Final production processed data shape: {processed_df.shape} \n {processed_df.info()}")
+    processed_df.info()
 
