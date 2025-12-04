@@ -1,0 +1,15 @@
+artifact_uri: /Users/wycliffenzomo/Documents/churn-predictor/mlflow_artifacts/874256967591516475/b6f8dfbe30a54a439b00a2333f72bfbe/artifacts
+end_time: 1764815918863
+entry_point_name: ''
+experiment_id: '874256967591516475'
+lifecycle_stage: active
+run_id: b6f8dfbe30a54a439b00a2333f72bfbe
+run_name: trial_3
+run_uuid: b6f8dfbe30a54a439b00a2333f72bfbe
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764815918853
+status: 3
+tags: []
+user_id: wycliffenzomo

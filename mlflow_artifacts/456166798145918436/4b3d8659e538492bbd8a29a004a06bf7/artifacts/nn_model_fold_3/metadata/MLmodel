@@ -1,0 +1,36 @@
+artifact_path: nn_model_fold_3
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.11.14
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.2.1
+mlflow_version: 2.12.1
+model_size_bytes: 137606
+model_uuid: aa28c66e2744456a87aebb7f4c270230
+run_id: 4b3d8659e538492bbd8a29a004a06bf7
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "engagement_index", "required": true}, {"type":
+    "double", "name": "model_change_rate", "required": true}, {"type": "double", "name":
+    "overage_ratio", "required": true}, {"type": "double", "name": "call_activity_score",
+    "required": true}, {"type": "double", "name": "call_quality_issues", "required":
+    true}, {"type": "double", "name": "cust_engagement_score", "required": true},
+    {"type": "double", "name": "overuse_behavior", "required": true}, {"type": "double",
+    "name": "device_tenure_index", "required": true}, {"type": "double", "name": "demographic_index",
+    "required": true}]'
+  outputs: '[{"type": "float", "name": 0, "required": true}]'
+  params: null
+utc_time_created: '2025-12-04 02:39:50.837743'

@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1764815700017
+current_stage: None
+description: ''
+last_updated_timestamp: 1764815700017
+name: Churn_XGB_Model
+run_id: cf8c273f2a014c7ab04fc8b023a5267f
+run_link: ''
+source: /Users/wycliffenzomo/Documents/churn-predictor/mlflow_artifacts/874256967591516475/cf8c273f2a014c7ab04fc8b023a5267f/artifacts/xgboost/fold_3
+status: READY
+status_message: null
+storage_location: /Users/wycliffenzomo/Documents/churn-predictor/mlflow_artifacts/874256967591516475/cf8c273f2a014c7ab04fc8b023a5267f/artifacts/xgboost/fold_3
+user_id: null
+version: 3

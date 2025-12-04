@@ -1,0 +1,35 @@
+artifact_path: xgboost_final_model
+flavors:
+  python_function:
+    data: model.xgb
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.xgboost
+    python_version: 3.11.14
+  xgboost:
+    code: null
+    data: model.xgb
+    model_class: xgboost.sklearn.XGBClassifier
+    model_format: xgb
+    xgb_version: 2.0.3
+mlflow_version: 2.12.1
+model_size_bytes: 709420
+model_uuid: aef617e06c8b49e4ac248a0458d03d72
+run_id: cf8c273f2a014c7ab04fc8b023a5267f
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "engagement_index", "required": true}, {"type":
+    "double", "name": "model_change_rate", "required": true}, {"type": "double", "name":
+    "overage_ratio", "required": true}, {"type": "double", "name": "call_activity_score",
+    "required": true}, {"type": "double", "name": "call_quality_issues", "required":
+    true}, {"type": "double", "name": "cust_engagement_score", "required": true},
+    {"type": "double", "name": "overuse_behavior", "required": true}, {"type": "double",
+    "name": "device_tenure_index", "required": true}, {"type": "double", "name": "demographic_index",
+    "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+utc_time_created: '2025-12-04 02:35:12.820289'
