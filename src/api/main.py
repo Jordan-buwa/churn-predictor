@@ -44,6 +44,33 @@ try:
         'Total number of failed requests received',
         ['endpoint', 'error_code']
     )
+    # Counter: Tracks the count of predictions for each class (0 or 1) per model
+    PREDICTION_CLASS_COUNT = Counter(
+        'fastapi_prediction_class_total',
+        'Total number of predictions by class (0 or 1) for each model.',
+        ['model_name', 'prediction_class']
+    )
+    # Gauge: Tracks the average prediction score/probability for each model
+    AVG_PREDICTION_PROBABILITY = Gauge(
+        'model_avg_prediction_probability',
+        'The average prediction probability score returned by each model.',
+        ['model_name']
+    )
+
+    # Counter: Tracks the total number of successful predictions made by each model (Operational)
+    MODEL_PREDICTION_COUNT = Counter(
+        'model_successful_predictions_total',
+        'Total count of successful predictions served by each model.',
+        ['model_name']
+    )
+
+# Gauge: Tracks the Average Prediction Drift (e.g., Average-Mean) over a window.
+
+    CURRENT_BATCH_AVG_PROB = Gauge(
+        'model_current_batch_avg_prob',
+        'Average prediction probability for the latest batch processed by the model.',
+        ['model_name']
+    )
 except ValueError:
     pass
 # Function to update the model count for the Gauge
@@ -53,8 +80,6 @@ def update_model_count():
     """Updates the Prometheus gauge with the current number of loaded models."""
     info = get_all_models_info()
     MODEL_LOADED_GAUGE.set(len(info))
-
-# from src.api.template_context import get_template_context
 
 
 logging.basicConfig(
@@ -218,9 +243,6 @@ async def prometheus_middleware(request: Request, call_next):
         # Must generate a 500 response to return to the client if none was created
         if response is None:
             response = Response("Internal Server Error", status_code=500)
-
-        # In some frameworks, you might need to raise the exception again
-        # for higher-level error handlers, but here we return the 500 Response.
         return response
 
     response = await call_next(request)
