@@ -1,0 +1,6 @@
+artifact_location: /Users/wycliffenzomo/Documents/churn-predictor/mlflow_artifacts/874256967591516475
+creation_time: 1764804036942
+experiment_id: '874256967591516475'
+last_update_time: 1764804036942
+lifecycle_stage: active
+name: XGBoost_Churn_Experiment

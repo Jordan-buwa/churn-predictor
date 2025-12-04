@@ -1,0 +1,1 @@
+{'log_path': 'src/data_pipeline/logs/training/train_xgboost.log', 'log_level': 'INFO'}
