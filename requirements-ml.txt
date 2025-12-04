@@ -8,3 +8,4 @@ imbalanced-learn==0.12.2
 mlflow==2.12.1
 optuna==3.6.1
 optuna-integration[mlflow]==3.5.0
+pynvml==13.0.1

@@ -36,5 +36,5 @@ mlartifacts/
 b.yml
 docker_clean.sh
 .pytest_cache/
+mlflow_backend/
 mlflow_artifacts/
-mlflow_backened/
