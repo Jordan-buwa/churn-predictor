@@ -203,7 +203,8 @@ def predict_from_payload(
             tensor = torch.tensor(X, dtype=torch.float32)
             with torch.no_grad():
                 # Neural nets usually output probabilities [0.0 - 1.0]
-                probability_score = model(tensor).cpu().numpy()[0]
+                output = model(tensor).cpu().numpy()
+                probability_score = output.flatten()[0].item()
                 pred_class = int(np.round(probability_score))
         else:
             # Standard Scikit-learn models
