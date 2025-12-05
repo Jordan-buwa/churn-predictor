@@ -12,6 +12,7 @@ class CustomerData(BaseModel):
     """Customer data model for Cell2Cell churn prediction"""
     
     # COLUMNS TO DROP DURING PREPROCESSING
+    customer_id: Optional[int] = Field(None, description="Customer ID", alias="customer")
     unnamed_0: Optional[int] = Field(None, description="Unnamed index column", alias="Unnamed: 0")
     x: Optional[int] = Field(None, description="X column (likely duplicate index)")
     customer: Optional[str] = Field(None, description="Customer identifier")
@@ -133,21 +134,6 @@ class CustomerData(BaseModel):
         if v is not None:
             return str(v)
         return v
-    
-    # Non-negative numerical fields
-
-    @field_validator(
-        "revenue", "mou", "recchrge", "directas", "overage", "roam",
-        "dropvce", "blckvce", "unansvce", "custcare", "threeway",
-        "mourec", "outcalls", "incalls", "peakvce", "opeakvce",
-        "dropblk", "callfwdv", "callwait", "months", "uniqsubs",
-        "actvsubs", "phones", "models", "eqpdays", "refer", "setprc"
-    )
-
-    def non_negative(cls, v):
-        if v is not None and v < 0:
-            raise ValueError(f"{v} must be >= 0")
-        return v
 
     # Age constraints
     @field_validator("age1", "age2")
@@ -156,20 +142,6 @@ class CustomerData(BaseModel):
             raise ValueError("Age must be between 0 and 120")
         return v
 
-    @model_validator(mode="after")
-    def age_order(cls, self):
-        age1 = self.age1
-        age2 = self.age2
-        if age1 is not None and age2 is not None and age1 < age2:
-            raise ValueError("age1 must be >= age2")
-        return self
-
-    # Income: 0–9 scale
-    @field_validator("income")
-    def valid_income(cls, v):
-        if v is not None and (v < 0 or v > 9):
-            raise ValueError("income must be between 1 and 9")
-        return v
 
     # Binary categorical fields must be 0 or 1
     _binary_fields = [
@@ -178,7 +150,7 @@ class CustomerData(BaseModel):
         "occstud", "occhmkr", "occret", "occself", "ownrent", "marryun",
         "marryyes", "mailord", "mailres", "mailflag", "travel", "pcown",
         "creditcd", "newcelly", "newcelln", "incmiss", "mcycle", "setprcm",
-        "retcall", "retaccpt"
+        "retcall"
     ]
 
     @field_validator(*_binary_fields)
@@ -198,17 +170,6 @@ class CustomerData(BaseModel):
             raise ValueError("One of newcelly or newcelln must be set")
         return self
 
-    # Subscriber logic
-    @model_validator(mode="after")
-    def subscriber_logic(cls, self):
-        uniq = self.uniqsubs
-        actv = self.actvsubs
-        if uniq is not None and actv is not None:
-            if actv > uniq:
-                raise ValueError("actvsubs cannot exceed uniqsubs")
-            if actv < 1:
-                raise ValueError("actvsubs must be at least 1")
-        return self
 
     # Retention call logic
     @model_validator(mode="after")

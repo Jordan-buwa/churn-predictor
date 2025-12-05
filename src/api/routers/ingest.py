@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Dict, Any
 import pandas as pd
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 import io
 
 # --- Initialization ---
@@ -38,19 +38,17 @@ class IngestResponse(BaseModel):
 def parse_csv_file(file_content: bytes) -> pd.DataFrame:
     """Parse CSV file content into a Pandas DataFrame."""
     try:
-        df = pd.read_csv(io.BytesIO(file_content))
-        df.columns = df.columns.str.strip()
+        df = pd.read_csv(io.BytesIO(file_content))[:100]
+        df.columns = [str(col).strip() for col in df.columns]
         return df
     except Exception as e:
         raise ValueError(f"Error parsing CSV: {str(e)}")
 
-
 def parse_excel_file(file_content: bytes) -> pd.DataFrame:
     """Parse Excel file content into a Pandas DataFrame."""
     try:
-        # Assuming the first sheet for simplicity, but a more robust solution might check for sheet names
         df = pd.read_excel(io.BytesIO(file_content))
-        df.columns = df.columns.str.strip()
+        df.columns = [str(col).strip() for col in df.columns]
         return df
     except Exception as e:
         raise ValueError(f"Error parsing Excel file: {str(e)}")
@@ -58,8 +56,12 @@ def parse_excel_file(file_content: bytes) -> pd.DataFrame:
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize column names - handle common variations for Cell2Cell dataset."""
+    # First ensure all column names are strings
+    df.columns = [str(col) for col in df.columns]
+    
+    # Now we can use .str accessor
     df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
-
+    
     column_mapping = {
         'customerid': 'customer_id', 'cust_id': 'customer_id', 'id': 'customer_id',
         'tenure': 'months', 'month': 'months', 'phone': 'phones',
@@ -79,7 +81,6 @@ def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
         'prizm': 'prizm_cluster', 'marital': 'marital_status', 'own_rent': 'ownrent',
         'new_cell_y': 'newcelly', 'new_cell_n': 'newcelln',
         'set_prcm': 'setprcm', 'set_prc': 'setprc', 'ret_call': 'retcall',
-        'churndep': 'churn'
     }
 
     df.rename(columns=column_mapping, inplace=True)
@@ -89,7 +90,7 @@ def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
 def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Drop columns that should not be stored (e.g., indices, internal IDs)."""
     drop_cols = {"unnamed:_0", "x", "customer",
-                 "traintest", "row_id", "index", "unnamed"}
+                 "traintest", "row_id", "index", "unnamed", 'churndep'}
 
     # Find intersection of columns to drop and existing columns
     cols_to_drop = list(drop_cols.intersection(df.columns))
@@ -100,25 +101,64 @@ def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-
 def convert_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert boolean columns to 0/1 integers."""
+    """Convert boolean columns to string '0' or '1'."""
     boolean_columns = [
-        'refurb', 'webcap', 'children', 'truck', 'rv', 'mcycle',
+        'customer', 'traintest', "incmiss", 'prizmrur', 'prizmub', 'prizmtwn',
+        'occprof', 'occcler', 'occstud', 'occcrft', 'occhmkr', 'occret',
+        'refurb', 'webcap', 'children', 'truck', 'rv', 'mcycle', 'occself',
+        'marryun', 'marryyes', 'mcycle', 'mailflag', 'ownrent',
         'credita', 'creditaa', 'creditcd', 'mailord', 'mailres',
-        'travel', 'pcown', 'ownrent', 'newcelly', 'newcelln',
+        'travel', 'pcown', 'newcelly', 'newcelln',
         'refer', 'setprcm', 'retcall', 'churn'
     ]
-
+    cols = ['retcalls', 'retaccpt', 'churndep']
+    for col in cols:
+        if col in df.columns:
+            series = df[col]
+            series = series.astype(str).str.strip()
+        df[col] = series
     for col in boolean_columns:
         if col in df.columns:
-            # Standardize various representations to 1/0
-            mapping = {
-                'Yes': 1, 'yes': 1, 'YES': 1, 'Y': 1, 'y': 1, True: 1, 1.0: 1,
-                'No': 0, 'no': 0, 'NO': 0, 'N': 0, 'n': 0, False: 0, 0.0: 0
-            }
-            df[col] = df[col].astype(str).str.strip().map(
-                mapping).fillna(0).astype(int)
+            try:
+                # Ensure we're working with a Series, not a DataFrame
+                series = df[col]
+                if isinstance(series, pd.DataFrame):
+                    # This shouldn't happen, but handle it just in case
+                    logger.warning(f"Column {col} is a DataFrame, not a Series")
+                    continue
+                
+                # First, convert everything to string and clean
+                series = series.astype(str).str.strip()
+                
+                # Map various representations to '0' or '1' strings
+                mapping = {
+                    # True values -> '1'
+                    'Yes': '1', 'yes': '1', 'YES': '1', 'Y': '1', 'y': '1', 
+                    'True': '1', 'true': '1', 'TRUE': '1', 'T': '1', 't': '1',
+                    '1': '1', 1: '1', 1.0: '1', True: '1',
+                    
+                    # False values -> '0'
+                    'No': '0', 'no': '0', 'NO': '0', 'N': '0', 'n': '0',
+                    'False': '0', 'false': '0', 'FALSE': '0', 'F': '0', 'f': '0',
+                    '0': '0', 0: '0', 0.0: '0', False: '0',
+                    
+                    # Empty/NaN -> '0'
+                    'nan': '0', 'NaN': '0', 'None': '0', 'none': '0', 
+                    'null': '0', 'Null': '0', 'NULL': '0',
+                    '': '0', ' ': '0'
+                }
+                
+                # Apply mapping and fill any remaining with '0'
+                df[col] = series.map(mapping).fillna('0')
+                
+                logger.debug(f"Converted {col} to string boolean: {df[col].unique()[:5]}")
+
+                
+            except Exception as e:
+                logger.error(f"Error converting boolean column {col}: {str(e)}")
+                # If conversion fails, set all to '0' as default
+                df[col] = '0'
 
     return df
 
@@ -140,7 +180,7 @@ def convert_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
     # Integer columns (filled with 0 as they often represent counts or ages)
     int_columns = [
         'months', 'phones', 'eqpdays', 'models', 'actvsubs', 'uniqsubs',
-        'age1', 'age2', 'income', 'retcalls', 'retaccpt'
+        'age1', 'age2', 'income'
     ]
 
     for col in int_columns:
@@ -158,9 +198,20 @@ def clean_categorical_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     for col in categorical_columns:
         if col in df.columns:
-            # Convert to string, standardize, and replace empty strings with None (NaN)
-            df[col] = df[col].astype(str).str.strip().str.lower()
-            df[col] = df[col].replace({'nan': None, 'none': None, '': None})
+            try:
+                # Ensure we're working with a Series
+                series = df[col]
+                if isinstance(series, pd.DataFrame):
+                    logger.warning(f"Column {col} is a DataFrame, not a Series")
+                    continue
+                    
+                # Convert to string, standardize, and replace empty strings with None (NaN)
+                series = series.astype(str).str.strip().str.lower()
+                series = series.replace({'nan': None, 'none': None, '': None})
+                df[col] = series
+            except Exception as e:
+                logger.error(f"Error cleaning categorical column {col}: {str(e)}")
+                continue
 
     return df
 
@@ -173,7 +224,6 @@ def process_ingestion_data(df: pd.DataFrame, source: str) -> List[CustomerData]:
     logger.info("Starting DataFrame preprocessing pipeline.")
 
     df = normalize_column_names(df)
-    df = drop_unnecessary_columns(df)
     df = convert_boolean_columns(df)
     df = convert_numeric_columns(df)
     df = clean_categorical_columns(df)
@@ -183,7 +233,7 @@ def process_ingestion_data(df: pd.DataFrame, source: str) -> List[CustomerData]:
     failed_rows = []
 
     current_time = datetime.utcnow().isoformat()
-
+    logger.info(f"DataFrame shape after preprocessing: {df.columns}, {df.shape}")
     for idx, row in df.iterrows():
         try:
             # Convert row to dict, handling NaN values which Pydantic Optional[T] handles as None
@@ -248,9 +298,7 @@ async def ingest_single_record(data: CustomerData):
 
     try:
         data.source = "api"
-        data.timestamp = datetime.now(UTC).isoformat()
-        data.batch_id = batch_id
-
+        data.timestamp = datetime.utcnow().isoformat()
         success = save_customer_data(data, batch_id)
 
         if success:
@@ -288,7 +336,7 @@ async def ingest_batch_records(data: BatchCustomerData):
         # Set metadata for all customers
         for customer in data.customers:
             customer.source = "api_batch"
-            customer.timestamp = datetime.now(UTC).isoformat()
+            customer.timestamp = datetime.utcnow().isoformat()
             customer.batch_id = batch_id
 
         # Use bulk insert (assuming save_batch_customer_data handles the DB connection)

@@ -228,7 +228,6 @@ def save_customer_data(data: CustomerData, batch_id: str) -> bool:
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            
             # Generate customer_id if not provided
             if not data.customer_id:
                 data.customer_id = f"CUST_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{id(data)}"
@@ -278,7 +277,7 @@ def save_customer_data(data: CustomerData, batch_id: str) -> bool:
                 data.newcelly, data.newcelln, data.incmiss, data.mcycle, data.setprcm,
                 data.retcall, data.retcalls, data.retaccpt,
                 data.churn, data.source, data.timestamp, batch_id,
-                json.dump(features_dict)
+                json.dumps(features_dict)
             ))
             
             cursor.close()
